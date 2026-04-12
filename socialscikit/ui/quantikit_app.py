@@ -34,9 +34,6 @@ from socialscikit.quantikit.feature_extractor import TASK_TYPES, FeatureExtracto
 from socialscikit.quantikit.method_recommender import MethodRecommender
 from socialscikit.quantikit.prompt_classifier import PromptClassifier
 from socialscikit.quantikit.prompt_optimizer import PromptOptimizer, PromptVariant
-from socialscikit.core.icr import ICRCalculator
-from socialscikit.core.methods_writer import MethodsWriter, QuantiKitPipelineMetadata
-
 logger = logging.getLogger(__name__)
 
 
@@ -1505,9 +1502,9 @@ def _cancel_api_ft_job(job_id_state, api_key):
 def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_label"):
     """Evaluate predictions against ground truth."""
     if result_df_state is None or df_state is None:
-        return "请先运行分类。", None
+        return "请先运行分类。"
     if not label_col or label_col not in df_state.columns:
-        return "未找到标签列，无法评估。请确认数据中包含真实标签。", None
+        return "未找到标签列，无法评估。请确认数据中包含真实标签。"
 
     true_labels = df_state[label_col].dropna().astype(str).tolist()
     pred_labels = result_df_state[pred_col].tolist()
@@ -1519,72 +1516,50 @@ def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_
 
     evaluator = Evaluator()
     report = evaluator.evaluate(true_labels, pred_labels)
-    return Evaluator.format_report(report), report
+    return Evaluator.format_report(report)
 
 
 # ---------------------------------------------------------------------------
-# Step 5b: ICR
+# Step 5b: Export Pipeline Log
 # ---------------------------------------------------------------------------
 
 
-def _compute_icr(result_df_state, icr_file, second_label_col, pred_col="predicted_label"):
-    """Compute inter-coder reliability between predictions and a second set of labels."""
-    if result_df_state is None:
-        return "请先运行分类。"
-    if icr_file is None:
-        return "请上传第二编码者的标签文件（CSV）。"
+def _export_pipeline_log(result_df_state, df_state, label_col, pred_col="predicted_label"):
+    """Export QuantiKit pipeline metadata as JSON for the Toolbox Methods Generator."""
+    import json, tempfile
 
-    try:
-        second_df = pd.read_csv(icr_file.name if hasattr(icr_file, "name") else icr_file)
-    except Exception as e:
-        return f"读取文件失败：{e}"
-
-    col = second_label_col.strip() if second_label_col else ""
-    if not col or col not in second_df.columns:
-        available = ", ".join(second_df.columns.tolist()[:10])
-        return f"未找到列 '{col}'。可用列：{available}"
-
-    pred_labels = result_df_state[pred_col].astype(str).tolist()
-    second_labels = second_df[col].astype(str).tolist()
-
-    min_len = min(len(pred_labels), len(second_labels))
-    pred_labels = pred_labels[:min_len]
-    second_labels = second_labels[:min_len]
-
-    calc = ICRCalculator()
-    report = calc.compute_all(pred_labels, second_labels)
-    return report.summary_text
-
-
-# ---------------------------------------------------------------------------
-# Step 6b: Methods Section
-# ---------------------------------------------------------------------------
-
-
-def _generate_qt_methods(result_df_state, df_state, eval_report_state):
-    """Generate methods section for QuantiKit pipeline."""
     if result_df_state is None or df_state is None:
-        return "请先完成分析流程。", ""
+        return None
 
-    # Collect metadata from states
-    meta = QuantiKitPipelineMetadata()
-    meta.n_samples = len(df_state)
+    log = {"pipeline": "quantikit", "n_samples": int(len(df_state))}
 
-    if result_df_state is not None and "predicted_label" in result_df_state.columns:
+    # Class info from predictions
+    if "predicted_label" in result_df_state.columns:
         labels = result_df_state["predicted_label"].dropna().unique().tolist()
-        meta.n_classes = len(labels)
-        meta.class_labels = [str(l) for l in sorted(labels)]
+        log["n_classes"] = len(labels)
+        log["class_labels"] = [str(l) for l in sorted(labels)]
 
-    # From evaluation report
-    if eval_report_state is not None:
-        meta.accuracy = eval_report_state.accuracy
-        meta.macro_f1 = eval_report_state.macro_f1
-        meta.weighted_f1 = eval_report_state.weighted_f1
-        meta.cohens_kappa = eval_report_state.cohens_kappa
+    # Evaluation metrics (re-compute if ground truth available)
+    if label_col and label_col in df_state.columns:
+        true_labels = df_state[label_col].dropna().astype(str).tolist()
+        pred_labels = result_df_state[pred_col].tolist()
+        min_len = min(len(true_labels), len(pred_labels))
+        true_labels = true_labels[:min_len]
+        pred_labels = pred_labels[:min_len]
 
-    writer = MethodsWriter()
-    section = writer.generate_quantikit_methods(meta)
-    return section.text_en, section.text_zh
+        evaluator = Evaluator()
+        report = evaluator.evaluate(true_labels, pred_labels)
+        log["accuracy"] = report.accuracy
+        log["macro_f1"] = report.macro_f1
+        log["weighted_f1"] = report.weighted_f1
+        log["cohens_kappa"] = report.cohens_kappa
+
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix="_quantikit_log.json", delete=False, encoding="utf-8",
+    )
+    json.dump(log, tmp, ensure_ascii=False, indent=2)
+    tmp.close()
+    return tmp.name
 
 
 # ---------------------------------------------------------------------------

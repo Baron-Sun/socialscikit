@@ -37,10 +37,6 @@ from socialscikit.qualikit.extraction_reviewer import ExtractionReviewer, Review
 from socialscikit.qualikit.segmenter import Segmenter
 from socialscikit.qualikit.segment_extractor import ResearchQuestion, SegmentExtractor
 from socialscikit.qualikit.theme_reviewer import ThemeReviewer
-from socialscikit.qualikit.consensus import ConsensusCoder, ConsensusReport
-from socialscikit.core.icr import ICRCalculator
-from socialscikit.core.methods_writer import MethodsWriter, QualiKitPipelineMetadata
-
 # ---------------------------------------------------------------------------
 # Shared instances
 # ---------------------------------------------------------------------------
@@ -454,161 +450,64 @@ def _accept_all_high_coding(review_session_state):
 
 
 # ---------------------------------------------------------------------------
-# Step 4b: Consensus Coding
+# Step 4b: Export Pipeline Log
 # ---------------------------------------------------------------------------
 
 
-def _run_consensus_coding(
-    df_state, text_col, theme_session_state,
-    b1, m1, k1, b2, m2, k2, b3, m3, k3,
-):
-    """Run multi-LLM consensus coding."""
-    if df_state is None:
-        return None, None, None, "请先上传数据。", None, ""
-    if theme_session_state is None or not theme_session_state.locked:
-        return None, None, None, "请先锁定主题框架。", None, ""
+def _export_pipeline_log(ext_session_state, rqs_state, review_session_state):
+    """Export QualiKit pipeline metadata as JSON for the Toolbox Methods Generator."""
+    import json, tempfile
 
-    text_col = text_col.strip() or "text"
-    texts = df_state[text_col].dropna().astype(str).tolist()
-    themes = theme_session_state.themes
+    if ext_session_state is None:
+        return None
 
-    # Build LLM clients from the 3 slots (skip empty ones)
-    clients = []
-    for backend, model, api_key in [(b1, m1, k1), (b2, m2, k2), (b3, m3, k3)]:
-        if model and model.strip():
-            if not api_key and backend != "ollama":
-                continue
-            clients.append(LLMClient(
-                backend=backend, model=model.strip(),
-                api_key=api_key.strip() if api_key else None,
-            ))
+    log = {"pipeline": "qualikit"}
 
-    if len(clients) < 2:
-        return None, None, None, "共识编码需要至少配置 2 个有效 LLM。", None, ""
+    # Segment & theme info from extraction session
+    if hasattr(ext_session_state, "results") and ext_session_state.results:
+        results = ext_session_state.results
+        log["n_segments"] = len(results)
 
-    try:
-        consensus = ConsensusCoder(clients)
-        report = consensus.code(texts, themes)
-    except Exception as e:
-        return None, None, None, f"共识编码失败：{e}", None, ""
+        # Collect all themes from extraction results
+        all_themes = set()
+        for r in results:
+            if hasattr(r, "themes"):
+                all_themes.update(r.themes)
+            elif hasattr(r, "research_question"):
+                all_themes.add(r.research_question)
+        if all_themes:
+            log["theme_names"] = sorted(all_themes)
+            log["n_themes"] = len(all_themes)
 
-    # Convert to standard coding results for downstream pipeline
-    coding_report = report.to_coding_report()
-    ranked = _confidence_ranker.rank(coding_report.results)
-    review_session = _coding_reviewer.create_session(ranked)
-
-    # Summary
-    summary = ConsensusCoder.format_report(report)
-
-    # Results table
-    rows = []
-    for seg in report.segments:
-        rows.append({
-            "ID": seg.text_id,
-            "文本": seg.text[:100] + "..." if len(seg.text) > 100 else seg.text,
-            "共识主题": ", ".join(seg.consensus_themes),
-            "一致性": f"{seg.agreement_rate:.2%}",
-            "投票": "; ".join(f"{t}: {c}/{report.n_coders}" for t, c in seg.vote_counts.items()),
-        })
-    results_df = pd.DataFrame(rows) if rows else None
-
-    # Agreement report
-    agreement = f"总体一致性：{report.overall_agreement:.2%}\n"
-    agreement += f"模型：{', '.join(report.coder_models)}\n"
-    agreement += f"总费用：${report.total_cost:.4f}"
-
-    return coding_report.results, review_session, report, summary, results_df, agreement
-
-
-# ---------------------------------------------------------------------------
-# Step 5b: ICR (Human vs LLM)
-# ---------------------------------------------------------------------------
-
-
-def _compute_qualikit_icr(coding_results_state, coding_review_state):
-    """Compute ICR between original LLM coding and human-reviewed results."""
-    if coding_results_state is None:
-        return "请先完成编码。"
-    if coding_review_state is None:
-        return "请先完成人工审核。"
-
-    # Extract LLM themes per segment
-    llm_themes: list[set[str]] = []
-    for r in coding_results_state:
-        llm_themes.append(set(r.themes))
-
-    # Extract human-reviewed themes per segment
-    # Build a map from text_id to reviewed themes
-    reviewed_map: dict[int, set[str]] = {}
-    for tier in [coding_review_state.high, coding_review_state.medium, coding_review_state.low]:
-        for item in tier:
-            if item.action == CodingReviewAction.ACCEPTED:
-                reviewed_map[item.result.text_id] = set(item.result.themes)
-            elif item.action == CodingReviewAction.EDITED:
-                reviewed_map[item.result.text_id] = set(item.edited_themes) if item.edited_themes else set(item.result.themes)
-            elif item.action == CodingReviewAction.REJECTED:
-                reviewed_map[item.result.text_id] = set()
-            else:
-                # Not yet reviewed — use original
-                reviewed_map[item.result.text_id] = set(item.result.themes)
-
-    human_themes: list[set[str]] = []
-    for r in coding_results_state:
-        human_themes.append(reviewed_map.get(r.text_id, set(r.themes)))
-
-    calc = ICRCalculator()
-    report = calc.compute_all_multilabel(llm_themes, human_themes)
-    return report.summary_text
-
-
-# ---------------------------------------------------------------------------
-# Step 5c: Methods Section
-# ---------------------------------------------------------------------------
-
-
-def _generate_ql_methods(coding_results_state, theme_session_state, coding_review_state, consensus_report_state):
-    """Generate methods section for QualiKit pipeline."""
-    if coding_results_state is None:
-        return "请先完成分析流程。", ""
-
-    meta = QualiKitPipelineMetadata()
-    meta.n_segments = len(coding_results_state)
-
-    if theme_session_state is not None:
-        meta.n_themes = len(theme_session_state.themes)
-        meta.theme_names = [t.name for t in theme_session_state.themes]
-
-    # Count confidence tiers
-    for r in coding_results_state:
-        tier = r.confidence_tier
-        if tier == "high":
-            meta.n_high_confidence += 1
-        elif tier == "medium":
-            meta.n_medium_confidence += 1
-        else:
-            meta.n_low_confidence += 1
+    # Research questions
+    if rqs_state:
+        rq_names = []
+        for rq in rqs_state:
+            if hasattr(rq, "name"):
+                rq_names.append(rq.name)
+            elif hasattr(rq, "question"):
+                rq_names.append(rq.question)
+        if rq_names:
+            log["research_questions"] = rq_names
 
     # Review stats
-    if coding_review_state is not None:
-        for tier_list in [coding_review_state.high, coding_review_state.medium, coding_review_state.low]:
-            for item in tier_list:
-                if item.action == CodingReviewAction.ACCEPTED:
-                    meta.n_accepted += 1
-                elif item.action == CodingReviewAction.REJECTED:
-                    meta.n_rejected += 1
-                elif item.action == CodingReviewAction.EDITED:
-                    meta.n_edited += 1
+    if review_session_state is not None:
+        stats = {"accepted": 0, "rejected": 0, "edited": 0, "pending": 0}
+        for tier in [review_session_state.high, review_session_state.medium, review_session_state.low]:
+            for item in tier:
+                action = item.action.value if hasattr(item.action, "value") else str(item.action)
+                if action in stats:
+                    stats[action] += 1
+                else:
+                    stats["pending"] += 1
+        log["review_stats"] = stats
 
-    # Consensus info
-    if consensus_report_state is not None:
-        meta.consensus_coding_used = True
-        meta.n_consensus_models = consensus_report_state.n_coders
-        meta.consensus_model_names = consensus_report_state.coder_models
-        meta.consensus_agreement = consensus_report_state.overall_agreement
-
-    writer = MethodsWriter()
-    section = writer.generate_qualikit_methods(meta)
-    return section.text_en, section.text_zh
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix="_qualikit_log.json", delete=False, encoding="utf-8",
+    )
+    json.dump(log, tmp, ensure_ascii=False, indent=2)
+    tmp.close()
+    return tmp.name
 
 
 # ---------------------------------------------------------------------------
