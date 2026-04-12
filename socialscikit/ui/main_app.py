@@ -905,11 +905,26 @@ def create_app() -> gr.Blocks:
                                  outputs=[qt_aft_stat])
 
             # -- 5. Evaluation --------------------------------------------
+            qt_eval_report_state = gr.State(None)
+
             with gr.Tab("Step 5 · Evaluation"):
                 qt_s5_md = gr.Markdown(t("qt.s5.title", "en"))
                 qt_ebtn = gr.Button(t("qt.s5.run_btn", "en"), variant="primary")
                 qt_eout = gr.Textbox(label=t("qt.s5.report", "en"), lines=18, interactive=False)
-                qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol], outputs=[qt_eout])
+                qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol],
+                              outputs=[qt_eout, qt_eval_report_state])
+
+                # --- Inter-Coder Reliability ---
+                with gr.Accordion(t("icr.title", "en"), open=False):
+                    gr.Markdown(t("icr.description", "en"))
+                    with gr.Row():
+                        qt_icr_file = gr.File(label=t("icr.upload_second_labels", "en"), file_types=[".csv"])
+                        qt_icr_col = gr.Textbox(label=t("icr.second_label_col", "en"), value="label")
+                    qt_icr_btn = gr.Button(t("icr.compute_btn", "en"), variant="secondary")
+                    qt_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=14, interactive=False)
+                    qt_icr_btn.click(fn=qn._compute_icr,
+                                     inputs=[qt_result_df, qt_icr_file, qt_icr_col],
+                                     outputs=[qt_icr_out])
 
             # -- 6. Export ------------------------------------------------
             with gr.Tab("Step 6 · Export"):
@@ -917,6 +932,17 @@ def create_app() -> gr.Blocks:
                 qt_xbtn = gr.Button(t("qt.s6.export_btn", "en"), variant="primary")
                 qt_xfile = gr.File(label=t("qt.s6.file", "en"))
                 qt_xbtn.click(fn=qn._export_results, inputs=[qt_result_df], outputs=[qt_xfile])
+
+                # --- Methods Section Generator ---
+                with gr.Accordion(t("methods.title", "en"), open=False):
+                    gr.Markdown(t("methods.description", "en"))
+                    qt_meth_btn = gr.Button(t("methods.generate_btn", "en"), variant="secondary")
+                    qt_meth_en = gr.Textbox(label=t("methods.text_en", "en"), lines=8, interactive=True)
+                    qt_meth_zh = gr.Textbox(label=t("methods.text_zh", "en"), lines=8, interactive=True)
+                    gr.Markdown(t("methods.copy_hint", "en"))
+                    qt_meth_btn.click(fn=qn._generate_qt_methods,
+                                      inputs=[qt_result_df, qt_df, qt_eval_report_state],
+                                      outputs=[qt_meth_en, qt_meth_zh])
 
         # ==================================================================
         # QualiKit
@@ -1120,6 +1146,8 @@ def create_app() -> gr.Blocks:
             # ==========================================================
             # Step 4 · LLM Coding
             # ==========================================================
+            ql_consensus_report_state = gr.State(None)
+
             with gr.Tab("Step 4 · LLM Coding"):
                 ql_s4_md = gr.Markdown(t("ql.s4.title", "en"))
                 with gr.Row():
@@ -1134,6 +1162,29 @@ def create_app() -> gr.Blocks:
                 ql_ext_tbl = gr.Dataframe(label=t("ql.s4.detail", "en"), interactive=False)
 
                 # events wired in cross-tab section below (needs Step 5 components)
+
+                # --- Consensus Coding (Multi-LLM) ---
+                with gr.Accordion(t("consensus.title", "en"), open=False):
+                    gr.Markdown(t("consensus.description", "en"))
+                    gr.Markdown("**LLM 1**")
+                    with gr.Row():
+                        ql_con_b1 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="openai", label="Backend 1")
+                        ql_con_m1 = gr.Textbox(label="Model 1", value="gpt-4o-mini")
+                        ql_con_k1 = gr.Textbox(label="API Key 1", type="password")
+                    gr.Markdown("**LLM 2**")
+                    with gr.Row():
+                        ql_con_b2 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="anthropic", label="Backend 2")
+                        ql_con_m2 = gr.Textbox(label="Model 2", value="claude-sonnet-4-20250514")
+                        ql_con_k2 = gr.Textbox(label="API Key 2", type="password")
+                    gr.Markdown("**LLM 3** (optional)")
+                    with gr.Row():
+                        ql_con_b3 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="ollama", label="Backend 3")
+                        ql_con_m3 = gr.Textbox(label="Model 3", value="")
+                        ql_con_k3 = gr.Textbox(label="API Key 3", type="password")
+                    ql_con_btn = gr.Button(t("consensus.run_btn", "en"), variant="primary")
+                    ql_con_summary = gr.Textbox(label=t("consensus.summary", "en"), lines=10, interactive=False)
+                    ql_con_results = gr.Dataframe(label=t("consensus.results", "en"), interactive=False)
+                    ql_con_agreement = gr.Textbox(label=t("consensus.agreement", "en"), lines=4, interactive=False)
 
             # ==========================================================
             # Step 5 · Review
@@ -1185,6 +1236,21 @@ def create_app() -> gr.Blocks:
                     fn=ql._ext_export_excel, inputs=[ql_ext_session],
                     outputs=[ql_xl_file, ql_xl_msg],
                 )
+
+                # --- Inter-Coder Reliability ---
+                with gr.Accordion(t("icr.title", "en"), open=False):
+                    gr.Markdown(t("icr.human_vs_llm_desc", "en"))
+                    ql_icr_btn = gr.Button(t("icr.compute_human_llm_btn", "en"), variant="secondary")
+                    ql_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=14, interactive=False)
+                    # Note: event wired below after all components are defined
+
+                # --- Methods Section Generator ---
+                with gr.Accordion(t("methods.title", "en"), open=False):
+                    gr.Markdown(t("methods.description", "en"))
+                    ql_meth_btn = gr.Button(t("methods.generate_btn", "en"), variant="secondary")
+                    ql_meth_en = gr.Textbox(label=t("methods.text_en", "en"), lines=8, interactive=True)
+                    ql_meth_zh = gr.Textbox(label=t("methods.text_zh", "en"), lines=8, interactive=True)
+                    gr.Markdown(t("methods.copy_hint", "en"))
 
             # ==========================================================
             # Cross-tab event wiring
@@ -1262,6 +1328,34 @@ def create_app() -> gr.Blocks:
                 fn=ql._ext_add_manual,
                 inputs=[ql_ext_session, ql_man_seg, ql_man_rq, ql_man_sub],
                 outputs=_rev_out,
+            )
+
+            # -- Consensus Coding events --
+            ql_con_btn.click(
+                fn=ql._run_consensus_coding,
+                inputs=[ql_segments, ql_ext_mod, ql_rqs,
+                        ql_con_b1, ql_con_m1, ql_con_k1,
+                        ql_con_b2, ql_con_m2, ql_con_k2,
+                        ql_con_b3, ql_con_m3, ql_con_k3],
+                outputs=[ql_ext_session, ql_ext_session,
+                         ql_consensus_report_state,
+                         ql_con_summary, ql_con_results,
+                         ql_con_agreement],
+            )
+
+            # -- ICR (Human vs LLM) events --
+            ql_icr_btn.click(
+                fn=ql._compute_qualikit_icr,
+                inputs=[ql_ext_session, ql_ext_session],
+                outputs=[ql_icr_out],
+            )
+
+            # -- Methods Section events --
+            ql_meth_btn.click(
+                fn=ql._generate_ql_methods,
+                inputs=[ql_ext_session, ql_rqs,
+                        ql_ext_session, ql_consensus_report_state],
+                outputs=[ql_meth_en, ql_meth_zh],
             )
 
         # ==================================================================
