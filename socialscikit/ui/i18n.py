@@ -1572,4 +1572,77 @@ _T = {
         "en": "Please complete the analysis pipeline before generating.",
         "zh": "请先完成分析流程再生成。",
     },
+
+    # ======================================================================
+    # Toolbox
+    # ======================================================================
+
+    "toolbox.title": {
+        "en": "Toolbox",
+        "zh": "工具箱",
+    },
+    "toolbox.description": {
+        "en": "Standalone research tools — ICR Calculator, Multi-LLM Consensus Coding, and Methods Section Generator. These tools work independently from QuantiKit and QualiKit.",
+        "zh": "独立研究工具 — 编码者间信度计算、多模型共识编码、方法论段落生成。这些工具独立于 QuantiKit 和 QualiKit 使用。",
+    },
+    "toolbox.icr_tab": {
+        "en": "ICR Calculator",
+        "zh": "编码者间信度",
+    },
+    "toolbox.consensus_tab": {
+        "en": "Consensus Coding",
+        "zh": "共识编码",
+    },
+    "toolbox.methods_tab": {
+        "en": "Methods Generator",
+        "zh": "方法论生成",
+    },
+    "toolbox.import_log": {
+        "en": "Import Pipeline Log",
+        "zh": "导入流水线日志",
+    },
+    "toolbox.export_log": {
+        "en": "Export Pipeline Log",
+        "zh": "导出流水线日志",
+    },
+    "toolbox.manual_input": {
+        "en": "Manual Input (without log file)",
+        "zh": "手动输入（无日志文件时使用）",
+    },
+    "toolbox.pipeline_type": {
+        "en": "Pipeline Type",
+        "zh": "流水线类型",
+    },
+    "toolbox.coder1_file": {
+        "en": "Coder 1 Labels (CSV)",
+        "zh": "编码者 1 标签（CSV）",
+    },
+    "toolbox.coder1_col": {
+        "en": "Coder 1 Label Column",
+        "zh": "编码者 1 标签列名",
+    },
+    "toolbox.coder2_file": {
+        "en": "Coder 2 Labels (CSV)",
+        "zh": "编码者 2 标签（CSV）",
+    },
+    "toolbox.coder2_col": {
+        "en": "Coder 2 Label Column",
+        "zh": "编码者 2 标签列名",
+    },
+    "toolbox.icr_mode": {
+        "en": "Label Mode",
+        "zh": "标签模式",
+    },
+    "toolbox.data_file": {
+        "en": "Data File (CSV)",
+        "zh": "数据文件（CSV）",
+    },
+    "toolbox.text_col": {
+        "en": "Text Column",
+        "zh": "文本列名",
+    },
+    "toolbox.themes_input": {
+        "en": "Themes (one per line, format: name: description)",
+        "zh": "主题（每行一个，格式：名称: 描述）",
+    },
 }
