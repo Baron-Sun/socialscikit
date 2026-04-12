@@ -1431,4 +1431,145 @@ _T = {
         "en": "API Key",
         "zh": "API Key",
     },
+
+    # ======================================================================
+    # Inter-Coder Reliability (ICR)
+    # ======================================================================
+
+    "icr.title": {
+        "en": "Inter-Coder Reliability",
+        "zh": "编码者间信度",
+    },
+    "icr.description": {
+        "en": "Compute agreement metrics between two sets of labels or coders.",
+        "zh": "计算两组标签或编码者之间的一致性指标。",
+    },
+    "icr.upload_second_labels": {
+        "en": "Upload second coder's labels (CSV)",
+        "zh": "上传第二编码者标签（CSV）",
+    },
+    "icr.second_label_col": {
+        "en": "Second coder label column",
+        "zh": "第二编码者标签列名",
+    },
+    "icr.compute_btn": {
+        "en": "Compute ICR",
+        "zh": "计算编码者间信度",
+    },
+    "icr.report": {
+        "en": "ICR Report",
+        "zh": "信度报告",
+    },
+    "icr.human_vs_llm": {
+        "en": "Human vs LLM Agreement",
+        "zh": "人工 vs LLM 一致性",
+    },
+    "icr.human_vs_llm_desc": {
+        "en": "Compare human-reviewed themes against original LLM coding.",
+        "zh": "对比人工审核主题与原始 LLM 编码结果。",
+    },
+    "icr.compute_human_llm_btn": {
+        "en": "Compute Human vs LLM ICR",
+        "zh": "计算人工 vs LLM 信度",
+    },
+    "msg.run_eval_first": {
+        "en": "Please run evaluation first.",
+        "zh": "请先运行评估。",
+    },
+    "msg.no_review_data": {
+        "en": "No review data available. Please complete coding and review first.",
+        "zh": "暂无审核数据，请先完成编码和审核。",
+    },
+
+    # ======================================================================
+    # Multi-LLM Consensus Coding
+    # ======================================================================
+
+    "consensus.title": {
+        "en": "Consensus Coding (Multi-LLM)",
+        "zh": "共识编码（多模型）",
+    },
+    "consensus.description": {
+        "en": (
+            "Run 2–3 LLMs independently on the same segments. "
+            "Themes are retained only when a majority of models agree."
+        ),
+        "zh": (
+            "使用 2–3 个 LLM 分别独立编码同一批文本，"
+            "仅保留多数模型一致同意的主题。"
+        ),
+    },
+    "consensus.backend_n": {
+        "en": "LLM {} Backend",
+        "zh": "LLM {} 后端",
+    },
+    "consensus.model_n": {
+        "en": "Model {}",
+        "zh": "模型 {}",
+    },
+    "consensus.api_key_n": {
+        "en": "API Key {}",
+        "zh": "API Key {}",
+    },
+    "consensus.run_btn": {
+        "en": "Run Consensus Coding",
+        "zh": "运行共识编码",
+    },
+    "consensus.summary": {
+        "en": "Consensus Summary",
+        "zh": "共识摘要",
+    },
+    "consensus.results": {
+        "en": "Consensus Results",
+        "zh": "共识结果",
+    },
+    "consensus.agreement": {
+        "en": "Agreement Report",
+        "zh": "一致性报告",
+    },
+    "msg.at_least_two_llms": {
+        "en": "Please configure at least 2 LLMs for consensus coding.",
+        "zh": "共识编码需要至少配置 2 个 LLM。",
+    },
+    "msg.consensus_done": {
+        "en": "Consensus coding complete. {} segments coded with {} models.",
+        "zh": "共识编码完成。{} 条文本使用 {} 个模型编码。",
+    },
+    "msg.lock_themes_first": {
+        "en": "Please define and lock themes first.",
+        "zh": "请先定义并锁定主题框架。",
+    },
+
+    # ======================================================================
+    # Methods Section Auto-generation
+    # ======================================================================
+
+    "methods.title": {
+        "en": "Methods Section Generator",
+        "zh": "方法论段落生成",
+    },
+    "methods.description": {
+        "en": "Generate a Methods paragraph draft for your paper based on the analysis pipeline.",
+        "zh": "根据分析流程自动生成论文方法论段落草稿。",
+    },
+    "methods.generate_btn": {
+        "en": "Generate Methods Section",
+        "zh": "生成方法论段落",
+    },
+    "methods.text_en": {
+        "en": "Methods (English)",
+        "zh": "方法论（英文）",
+    },
+    "methods.text_zh": {
+        "en": "Methods (Chinese)",
+        "zh": "方法论（中文）",
+    },
+    "methods.copy_hint": {
+        "en": "Auto-generated draft. Copy, edit, and cite appropriately before publication.",
+        "zh": "自动生成草稿，请复制后编辑，并在发表前适当引用。",
+    },
+    "methods.no_data": {
+        "en": "Please complete the analysis pipeline before generating.",
+        "zh": "请先完成分析流程再生成。",
+    },
 }

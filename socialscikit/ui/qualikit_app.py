@@ -37,6 +37,9 @@ from socialscikit.qualikit.extraction_reviewer import ExtractionReviewer, Review
 from socialscikit.qualikit.segmenter import Segmenter
 from socialscikit.qualikit.segment_extractor import ResearchQuestion, SegmentExtractor
 from socialscikit.qualikit.theme_reviewer import ThemeReviewer
+from socialscikit.qualikit.consensus import ConsensusCoder, ConsensusReport
+from socialscikit.core.icr import ICRCalculator
+from socialscikit.core.methods_writer import MethodsWriter, QualiKitPipelineMetadata
 
 # ---------------------------------------------------------------------------
 # Shared instances
@@ -448,6 +451,164 @@ def _accept_all_high_coding(review_session_state):
     msg += f"中：{stats['medium']['reviewed']}/{stats['medium']['total']}，"
     msg += f"低：{stats['low']['reviewed']}/{stats['low']['total']}"
     return review_session_state, msg
+
+
+# ---------------------------------------------------------------------------
+# Step 4b: Consensus Coding
+# ---------------------------------------------------------------------------
+
+
+def _run_consensus_coding(
+    df_state, text_col, theme_session_state,
+    b1, m1, k1, b2, m2, k2, b3, m3, k3,
+):
+    """Run multi-LLM consensus coding."""
+    if df_state is None:
+        return None, None, None, "请先上传数据。", None, ""
+    if theme_session_state is None or not theme_session_state.locked:
+        return None, None, None, "请先锁定主题框架。", None, ""
+
+    text_col = text_col.strip() or "text"
+    texts = df_state[text_col].dropna().astype(str).tolist()
+    themes = theme_session_state.themes
+
+    # Build LLM clients from the 3 slots (skip empty ones)
+    clients = []
+    for backend, model, api_key in [(b1, m1, k1), (b2, m2, k2), (b3, m3, k3)]:
+        if model and model.strip():
+            if not api_key and backend != "ollama":
+                continue
+            clients.append(LLMClient(
+                backend=backend, model=model.strip(),
+                api_key=api_key.strip() if api_key else None,
+            ))
+
+    if len(clients) < 2:
+        return None, None, None, "共识编码需要至少配置 2 个有效 LLM。", None, ""
+
+    try:
+        consensus = ConsensusCoder(clients)
+        report = consensus.code(texts, themes)
+    except Exception as e:
+        return None, None, None, f"共识编码失败：{e}", None, ""
+
+    # Convert to standard coding results for downstream pipeline
+    coding_report = report.to_coding_report()
+    ranked = _confidence_ranker.rank(coding_report.results)
+    review_session = _coding_reviewer.create_session(ranked)
+
+    # Summary
+    summary = ConsensusCoder.format_report(report)
+
+    # Results table
+    rows = []
+    for seg in report.segments:
+        rows.append({
+            "ID": seg.text_id,
+            "文本": seg.text[:100] + "..." if len(seg.text) > 100 else seg.text,
+            "共识主题": ", ".join(seg.consensus_themes),
+            "一致性": f"{seg.agreement_rate:.2%}",
+            "投票": "; ".join(f"{t}: {c}/{report.n_coders}" for t, c in seg.vote_counts.items()),
+        })
+    results_df = pd.DataFrame(rows) if rows else None
+
+    # Agreement report
+    agreement = f"总体一致性：{report.overall_agreement:.2%}\n"
+    agreement += f"模型：{', '.join(report.coder_models)}\n"
+    agreement += f"总费用：${report.total_cost:.4f}"
+
+    return coding_report.results, review_session, report, summary, results_df, agreement
+
+
+# ---------------------------------------------------------------------------
+# Step 5b: ICR (Human vs LLM)
+# ---------------------------------------------------------------------------
+
+
+def _compute_qualikit_icr(coding_results_state, coding_review_state):
+    """Compute ICR between original LLM coding and human-reviewed results."""
+    if coding_results_state is None:
+        return "请先完成编码。"
+    if coding_review_state is None:
+        return "请先完成人工审核。"
+
+    # Extract LLM themes per segment
+    llm_themes: list[set[str]] = []
+    for r in coding_results_state:
+        llm_themes.append(set(r.themes))
+
+    # Extract human-reviewed themes per segment
+    # Build a map from text_id to reviewed themes
+    reviewed_map: dict[int, set[str]] = {}
+    for tier in [coding_review_state.high, coding_review_state.medium, coding_review_state.low]:
+        for item in tier:
+            if item.action == CodingReviewAction.ACCEPTED:
+                reviewed_map[item.result.text_id] = set(item.result.themes)
+            elif item.action == CodingReviewAction.EDITED:
+                reviewed_map[item.result.text_id] = set(item.edited_themes) if item.edited_themes else set(item.result.themes)
+            elif item.action == CodingReviewAction.REJECTED:
+                reviewed_map[item.result.text_id] = set()
+            else:
+                # Not yet reviewed — use original
+                reviewed_map[item.result.text_id] = set(item.result.themes)
+
+    human_themes: list[set[str]] = []
+    for r in coding_results_state:
+        human_themes.append(reviewed_map.get(r.text_id, set(r.themes)))
+
+    calc = ICRCalculator()
+    report = calc.compute_all_multilabel(llm_themes, human_themes)
+    return report.summary_text
+
+
+# ---------------------------------------------------------------------------
+# Step 5c: Methods Section
+# ---------------------------------------------------------------------------
+
+
+def _generate_ql_methods(coding_results_state, theme_session_state, coding_review_state, consensus_report_state):
+    """Generate methods section for QualiKit pipeline."""
+    if coding_results_state is None:
+        return "请先完成分析流程。", ""
+
+    meta = QualiKitPipelineMetadata()
+    meta.n_segments = len(coding_results_state)
+
+    if theme_session_state is not None:
+        meta.n_themes = len(theme_session_state.themes)
+        meta.theme_names = [t.name for t in theme_session_state.themes]
+
+    # Count confidence tiers
+    for r in coding_results_state:
+        tier = r.confidence_tier
+        if tier == "high":
+            meta.n_high_confidence += 1
+        elif tier == "medium":
+            meta.n_medium_confidence += 1
+        else:
+            meta.n_low_confidence += 1
+
+    # Review stats
+    if coding_review_state is not None:
+        for tier_list in [coding_review_state.high, coding_review_state.medium, coding_review_state.low]:
+            for item in tier_list:
+                if item.action == CodingReviewAction.ACCEPTED:
+                    meta.n_accepted += 1
+                elif item.action == CodingReviewAction.REJECTED:
+                    meta.n_rejected += 1
+                elif item.action == CodingReviewAction.EDITED:
+                    meta.n_edited += 1
+
+    # Consensus info
+    if consensus_report_state is not None:
+        meta.consensus_coding_used = True
+        meta.n_consensus_models = consensus_report_state.n_coders
+        meta.consensus_model_names = consensus_report_state.coder_models
+        meta.consensus_agreement = consensus_report_state.overall_agreement
+
+    writer = MethodsWriter()
+    section = writer.generate_qualikit_methods(meta)
+    return section.text_en, section.text_zh
 
 
 # ---------------------------------------------------------------------------
@@ -1221,6 +1382,8 @@ def create_app() -> gr.Blocks:
         # =============================================================
         # Tab 4: LLM Coding
         # =============================================================
+        consensus_report_state = gr.State(None)
+
         with gr.Tab("4. 编码"):
             gr.Markdown("使用 LLM 对文本进行主题编码。需要先锁定主题框架。")
             with gr.Row():
@@ -1248,6 +1411,44 @@ def create_app() -> gr.Blocks:
                 outputs=[coding_review_state, code_review_msg],
             )
 
+            # --- Consensus Coding (Multi-LLM) ---
+            with gr.Accordion("共识编码（多模型）", open=False):
+                gr.Markdown(
+                    "使用 2–3 个 LLM 分别独立编码，仅保留多数模型一致同意的主题。"
+                )
+                gr.Markdown("**LLM 1**")
+                with gr.Row():
+                    con_b1 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="openai", label="后端 1")
+                    con_m1 = gr.Textbox(label="模型 1", value="gpt-4o-mini")
+                    con_k1 = gr.Textbox(label="API Key 1", type="password")
+                gr.Markdown("**LLM 2**")
+                with gr.Row():
+                    con_b2 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="anthropic", label="后端 2")
+                    con_m2 = gr.Textbox(label="模型 2", value="claude-sonnet-4-20250514")
+                    con_k2 = gr.Textbox(label="API Key 2", type="password")
+                gr.Markdown("**LLM 3**（可选）")
+                with gr.Row():
+                    con_b3 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="ollama", label="后端 3")
+                    con_m3 = gr.Textbox(label="模型 3", value="")
+                    con_k3 = gr.Textbox(label="API Key 3", type="password")
+
+                consensus_btn = gr.Button("运行共识编码", variant="primary")
+                consensus_summary = gr.Textbox(label="共识摘要", lines=10, interactive=False)
+                consensus_results_df = gr.Dataframe(label="共识结果", interactive=False)
+                consensus_agreement = gr.Textbox(label="一致性报告", lines=4, interactive=False)
+
+                consensus_btn.click(
+                    fn=_run_consensus_coding,
+                    inputs=[df_state, code_text_col, theme_session_state,
+                            con_b1, con_m1, con_k1,
+                            con_b2, con_m2, con_k2,
+                            con_b3, con_m3, con_k3],
+                    outputs=[coding_results_state, coding_review_state,
+                             consensus_report_state,
+                             consensus_summary, consensus_results_df,
+                             consensus_agreement],
+                )
+
         # =============================================================
         # Tab 5: Export
         # =============================================================
@@ -1268,6 +1469,32 @@ def create_app() -> gr.Blocks:
                 inputs=[coding_results_state, theme_session_state, coding_review_state],
                 outputs=[export_excel, export_memo, export_msg],
             )
+
+            # --- Inter-Coder Reliability ---
+            with gr.Accordion("编码者间信度 (ICR)", open=False):
+                gr.Markdown("对比人工审核结果与原始 LLM 编码，计算编码者间一致性。")
+                icr_ql_btn = gr.Button("计算 Human vs LLM 信度", variant="secondary")
+                icr_ql_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
+
+                icr_ql_btn.click(
+                    fn=_compute_qualikit_icr,
+                    inputs=[coding_results_state, coding_review_state],
+                    outputs=[icr_ql_output],
+                )
+
+            # --- Methods Section Generator ---
+            with gr.Accordion("方法论段落生成", open=False):
+                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
+                methods_ql_btn = gr.Button("生成方法论段落", variant="secondary")
+                methods_ql_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
+                methods_ql_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
+
+                methods_ql_btn.click(
+                    fn=_generate_ql_methods,
+                    inputs=[coding_results_state, theme_session_state,
+                            coding_review_state, consensus_report_state],
+                    outputs=[methods_ql_en, methods_ql_zh],
+                )
 
     return app
 
