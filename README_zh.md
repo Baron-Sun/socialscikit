@@ -410,7 +410,7 @@ python -c "from socialscikit.ui.main_app import create_app; create_app().launch(
 
 ## 作者
 
-**孙博伦** (Bolun Sun)
+**孙伯伦** (Bolun Sun)
 
 博士研究生，[凯洛格管理学院](https://www.kellogg.northwestern.edu/)，西北大学
 
