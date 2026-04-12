@@ -34,6 +34,8 @@ from socialscikit.quantikit.feature_extractor import TASK_TYPES, FeatureExtracto
 from socialscikit.quantikit.method_recommender import MethodRecommender
 from socialscikit.quantikit.prompt_classifier import PromptClassifier
 from socialscikit.quantikit.prompt_optimizer import PromptOptimizer, PromptVariant
+from socialscikit.core.icr import ICRCalculator
+from socialscikit.core.methods_writer import MethodsWriter, QuantiKitPipelineMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -1503,9 +1505,9 @@ def _cancel_api_ft_job(job_id_state, api_key):
 def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_label"):
     """Evaluate predictions against ground truth."""
     if result_df_state is None or df_state is None:
-        return "请先运行分类。"
+        return "请先运行分类。", None
     if not label_col or label_col not in df_state.columns:
-        return "未找到标签列，无法评估。请确认数据中包含真实标签。"
+        return "未找到标签列，无法评估。请确认数据中包含真实标签。", None
 
     true_labels = df_state[label_col].dropna().astype(str).tolist()
     pred_labels = result_df_state[pred_col].tolist()
@@ -1517,7 +1519,72 @@ def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_
 
     evaluator = Evaluator()
     report = evaluator.evaluate(true_labels, pred_labels)
-    return Evaluator.format_report(report)
+    return Evaluator.format_report(report), report
+
+
+# ---------------------------------------------------------------------------
+# Step 5b: ICR
+# ---------------------------------------------------------------------------
+
+
+def _compute_icr(result_df_state, icr_file, second_label_col, pred_col="predicted_label"):
+    """Compute inter-coder reliability between predictions and a second set of labels."""
+    if result_df_state is None:
+        return "请先运行分类。"
+    if icr_file is None:
+        return "请上传第二编码者的标签文件（CSV）。"
+
+    try:
+        second_df = pd.read_csv(icr_file.name if hasattr(icr_file, "name") else icr_file)
+    except Exception as e:
+        return f"读取文件失败：{e}"
+
+    col = second_label_col.strip() if second_label_col else ""
+    if not col or col not in second_df.columns:
+        available = ", ".join(second_df.columns.tolist()[:10])
+        return f"未找到列 '{col}'。可用列：{available}"
+
+    pred_labels = result_df_state[pred_col].astype(str).tolist()
+    second_labels = second_df[col].astype(str).tolist()
+
+    min_len = min(len(pred_labels), len(second_labels))
+    pred_labels = pred_labels[:min_len]
+    second_labels = second_labels[:min_len]
+
+    calc = ICRCalculator()
+    report = calc.compute_all(pred_labels, second_labels)
+    return report.summary_text
+
+
+# ---------------------------------------------------------------------------
+# Step 6b: Methods Section
+# ---------------------------------------------------------------------------
+
+
+def _generate_qt_methods(result_df_state, df_state, eval_report_state):
+    """Generate methods section for QuantiKit pipeline."""
+    if result_df_state is None or df_state is None:
+        return "请先完成分析流程。", ""
+
+    # Collect metadata from states
+    meta = QuantiKitPipelineMetadata()
+    meta.n_samples = len(df_state)
+
+    if result_df_state is not None and "predicted_label" in result_df_state.columns:
+        labels = result_df_state["predicted_label"].dropna().unique().tolist()
+        meta.n_classes = len(labels)
+        meta.class_labels = [str(l) for l in sorted(labels)]
+
+    # From evaluation report
+    if eval_report_state is not None:
+        meta.accuracy = eval_report_state.accuracy
+        meta.macro_f1 = eval_report_state.macro_f1
+        meta.weighted_f1 = eval_report_state.weighted_f1
+        meta.cohens_kappa = eval_report_state.cohens_kappa
+
+    writer = MethodsWriter()
+    section = writer.generate_quantikit_methods(meta)
+    return section.text_en, section.text_zh
 
 
 # ---------------------------------------------------------------------------
@@ -2008,6 +2075,8 @@ def create_app() -> gr.Blocks:
         # =============================================================
         # Tab 5: Evaluation
         # =============================================================
+        eval_report_state = gr.State(None)
+
         with gr.Tab("5. 评估"):
             gr.Markdown("将分类结果与真实标签对比，计算评估指标。")
             eval_label_col = gr.Textbox(label="真实标签列名", value="label")
@@ -2017,8 +2086,23 @@ def create_app() -> gr.Blocks:
             eval_btn.click(
                 fn=_evaluate_results,
                 inputs=[result_df_state, df_state, eval_label_col],
-                outputs=[eval_output],
+                outputs=[eval_output, eval_report_state],
             )
+
+            # --- Inter-Coder Reliability ---
+            with gr.Accordion("编码者间信度 (ICR)", open=False):
+                gr.Markdown("上传第二编码者（或人工标注）的标签 CSV，计算编码者间一致性。")
+                with gr.Row():
+                    icr_file = gr.File(label="第二编码者标签（CSV）", file_types=[".csv"])
+                    icr_second_col = gr.Textbox(label="标签列名", value="label")
+                icr_btn = gr.Button("计算编码者间信度", variant="secondary")
+                icr_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
+
+                icr_btn.click(
+                    fn=_compute_icr,
+                    inputs=[result_df_state, icr_file, icr_second_col],
+                    outputs=[icr_output],
+                )
 
         # =============================================================
         # Tab 6: Export
@@ -2033,6 +2117,19 @@ def create_app() -> gr.Blocks:
                 inputs=[result_df_state],
                 outputs=[export_file],
             )
+
+            # --- Methods Section Generator ---
+            with gr.Accordion("方法论段落生成", open=False):
+                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
+                methods_btn = gr.Button("生成方法论段落", variant="secondary")
+                methods_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
+                methods_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
+
+                methods_btn.click(
+                    fn=_generate_qt_methods,
+                    inputs=[result_df_state, df_state, eval_report_state],
+                    outputs=[methods_en, methods_zh],
+                )
 
     return app
 
