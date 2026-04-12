@@ -1613,25 +1613,37 @@ _T = {
         "en": "Pipeline Type",
         "zh": "流水线类型",
     },
-    "toolbox.coder1_file": {
-        "en": "Coder 1 Labels (CSV)",
-        "zh": "编码者 1 标签（CSV）",
+    "toolbox.icr_upload": {
+        "en": "Upload Labels CSV (each column = one coder)",
+        "zh": "上传标签 CSV（每列代表一个编码者）",
     },
-    "toolbox.coder1_col": {
-        "en": "Coder 1 Label Column",
-        "zh": "编码者 1 标签列名",
+    "toolbox.icr_file_info": {
+        "en": "File info",
+        "zh": "文件信息",
     },
-    "toolbox.coder2_file": {
-        "en": "Coder 2 Labels (CSV)",
-        "zh": "编码者 2 标签（CSV）",
+    "toolbox.icr_select_cols": {
+        "en": "Select coder columns",
+        "zh": "选择编码者列",
     },
-    "toolbox.coder2_col": {
-        "en": "Coder 2 Label Column",
-        "zh": "编码者 2 标签列名",
+    "toolbox.icr_select_cols_info": {
+        "en": "Pick 2+ columns. 2 coders → Cohen's Kappa; 3+ coders → Krippendorff's Alpha.",
+        "zh": "选择 2 列以上。2 人 → Cohen's Kappa；3 人以上 → Krippendorff's Alpha。",
     },
     "toolbox.icr_mode": {
         "en": "Label Mode",
         "zh": "标签模式",
+    },
+    "toolbox.icr_mode_info": {
+        "en": "single-label: one label per cell. multi-label: comma-separated values per cell.",
+        "zh": "单标签：每格一个标签。多标签：每格用逗号分隔多个标签。",
+    },
+    "toolbox.add_llm": {
+        "en": "+ Add LLM",
+        "zh": "+ 添加模型",
+    },
+    "toolbox.remove_llm": {
+        "en": "- Remove LLM",
+        "zh": "- 移除模型",
     },
     "toolbox.data_file": {
         "en": "Data File (CSV)",

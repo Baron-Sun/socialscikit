@@ -1290,23 +1290,29 @@ def create_app() -> gr.Blocks:
             # ---------- ICR Calculator ----------
             with gr.Tab(t("toolbox.icr_tab", "en")) as tb_icr_tab:
                 tb_icr_md = gr.Markdown(t("icr.description", "en"))
-                with gr.Row():
-                    tb_icr_f1 = gr.File(label=t("toolbox.coder1_file", "en"), file_types=[".csv"])
-                    tb_icr_c1 = gr.Textbox(label=t("toolbox.coder1_col", "en"), value="label")
-                with gr.Row():
-                    tb_icr_f2 = gr.File(label=t("toolbox.coder2_file", "en"), file_types=[".csv"])
-                    tb_icr_c2 = gr.Textbox(label=t("toolbox.coder2_col", "en"), value="label")
+                tb_icr_file = gr.File(label=t("toolbox.icr_upload", "en"), file_types=[".csv"])
+                tb_icr_info = gr.Textbox(label=t("toolbox.icr_file_info", "en"), interactive=False, lines=1)
+                tb_icr_cols = gr.CheckboxGroup(
+                    choices=[], label=t("toolbox.icr_select_cols", "en"),
+                    info=t("toolbox.icr_select_cols_info", "en"),
+                )
                 tb_icr_mode = gr.Radio(
                     choices=["single-label", "multi-label"],
                     value="single-label",
                     label=t("toolbox.icr_mode", "en"),
+                    info=t("toolbox.icr_mode_info", "en"),
                 )
                 tb_icr_btn = gr.Button(t("icr.compute_btn", "en"), variant="primary")
-                tb_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=16, interactive=False)
+                tb_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=18, interactive=False)
 
+                tb_icr_file.change(
+                    fn=tb._icr_on_upload,
+                    inputs=[tb_icr_file],
+                    outputs=[tb_icr_cols, tb_icr_info],
+                )
                 tb_icr_btn.click(
-                    fn=tb._compute_icr_from_files,
-                    inputs=[tb_icr_f1, tb_icr_c1, tb_icr_f2, tb_icr_c2, tb_icr_mode],
+                    fn=tb._compute_icr,
+                    inputs=[tb_icr_file, tb_icr_cols, tb_icr_mode],
                     outputs=[tb_icr_out],
                 )
 
@@ -1321,32 +1327,75 @@ def create_app() -> gr.Blocks:
                     placeholder="theme1: description\ntheme2: description\n...",
                     lines=4,
                 )
-                gr.Markdown("**LLM 1**")
+
+                # Dynamic LLM slots (up to 5, first 2 visible)
+                tb_con_llm_rows = []   # list of (gr.Row, backend, model, key)
+                tb_con_backends = []
+                tb_con_models = []
+                tb_con_keys = []
+                _defaults = [
+                    ("openai", "gpt-4o-mini"),
+                    ("anthropic", "claude-sonnet-4-20250514"),
+                    ("openai", "gpt-4o"),
+                    ("ollama", ""),
+                    ("anthropic", ""),
+                ]
+                for idx in range(tb.MAX_LLM_SLOTS):
+                    visible = idx < 2
+                    be_default, mod_default = _defaults[idx]
+                    with gr.Row(visible=visible) as llm_row:
+                        be = gr.Dropdown(
+                            choices=["openai", "anthropic", "ollama"],
+                            value=be_default,
+                            label=f"Backend {idx + 1}",
+                        )
+                        md = gr.Textbox(label=f"Model {idx + 1}", value=mod_default if visible else "")
+                        ky = gr.Textbox(label=f"API Key {idx + 1}", type="password")
+                    tb_con_llm_rows.append(llm_row)
+                    tb_con_backends.append(be)
+                    tb_con_models.append(md)
+                    tb_con_keys.append(ky)
+
+                tb_con_n_llms = gr.State(2)  # tracks how many slots are visible
+
                 with gr.Row():
-                    tb_con_b1 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="openai", label="Backend 1")
-                    tb_con_m1 = gr.Textbox(label="Model 1", value="gpt-4o-mini")
-                    tb_con_k1 = gr.Textbox(label="API Key 1", type="password")
-                gr.Markdown("**LLM 2**")
-                with gr.Row():
-                    tb_con_b2 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="anthropic", label="Backend 2")
-                    tb_con_m2 = gr.Textbox(label="Model 2", value="claude-sonnet-4-20250514")
-                    tb_con_k2 = gr.Textbox(label="API Key 2", type="password")
-                gr.Markdown("**LLM 3** (optional)")
-                with gr.Row():
-                    tb_con_b3 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="ollama", label="Backend 3")
-                    tb_con_m3 = gr.Textbox(label="Model 3", value="")
-                    tb_con_k3 = gr.Textbox(label="API Key 3", type="password")
+                    tb_con_add = gr.Button(t("toolbox.add_llm", "en"), variant="secondary", size="sm")
+                    tb_con_rm = gr.Button(t("toolbox.remove_llm", "en"), variant="secondary", size="sm")
+
+                def _add_llm_slot(n):
+                    n = min(n + 1, tb.MAX_LLM_SLOTS)
+                    updates = [gr.update(visible=(i < n)) for i in range(tb.MAX_LLM_SLOTS)]
+                    return [n] + updates
+
+                def _remove_llm_slot(n):
+                    n = max(n - 1, 2)
+                    updates = [gr.update(visible=(i < n)) for i in range(tb.MAX_LLM_SLOTS)]
+                    return [n] + updates
+
+                tb_con_add.click(
+                    fn=_add_llm_slot,
+                    inputs=[tb_con_n_llms],
+                    outputs=[tb_con_n_llms] + tb_con_llm_rows,
+                )
+                tb_con_rm.click(
+                    fn=_remove_llm_slot,
+                    inputs=[tb_con_n_llms],
+                    outputs=[tb_con_n_llms] + tb_con_llm_rows,
+                )
+
                 tb_con_btn = gr.Button(t("consensus.run_btn", "en"), variant="primary")
                 tb_con_summary = gr.Textbox(label=t("consensus.summary", "en"), lines=10, interactive=False)
                 tb_con_results = gr.Dataframe(label=t("consensus.results", "en"), interactive=False)
                 tb_con_agreement = gr.Textbox(label=t("consensus.agreement", "en"), lines=4, interactive=False)
 
+                # Collect all backend/model/key inputs in order
+                _con_inputs = [tb_con_file, tb_con_tcol, tb_con_themes]
+                for i in range(tb.MAX_LLM_SLOTS):
+                    _con_inputs.extend([tb_con_backends[i], tb_con_models[i], tb_con_keys[i]])
+
                 tb_con_btn.click(
                     fn=tb._run_standalone_consensus,
-                    inputs=[tb_con_file, tb_con_tcol, tb_con_themes,
-                            tb_con_b1, tb_con_m1, tb_con_k1,
-                            tb_con_b2, tb_con_m2, tb_con_k2,
-                            tb_con_b3, tb_con_m3, tb_con_k3],
+                    inputs=_con_inputs,
                     outputs=[tb_con_summary, tb_con_results, tb_con_agreement],
                 )
 
@@ -1655,10 +1704,8 @@ def create_app() -> gr.Blocks:
                 # -- Toolbox --
                 t("toolbox.description", lang),                          # tb_intro_md
                 t("icr.description", lang),                              # tb_icr_md
-                gr.update(label=t("toolbox.coder1_file", lang)),         # tb_icr_f1
-                gr.update(label=t("toolbox.coder1_col", lang)),          # tb_icr_c1
-                gr.update(label=t("toolbox.coder2_file", lang)),         # tb_icr_f2
-                gr.update(label=t("toolbox.coder2_col", lang)),          # tb_icr_c2
+                gr.update(label=t("toolbox.icr_upload", lang)),          # tb_icr_file
+                gr.update(label=t("toolbox.icr_select_cols", lang)),     # tb_icr_cols
                 gr.update(label=t("toolbox.icr_mode", lang)),            # tb_icr_mode
                 gr.update(value=t("icr.compute_btn", lang)),             # tb_icr_btn
                 gr.update(label=t("icr.report", lang)),                  # tb_icr_out
@@ -1666,6 +1713,8 @@ def create_app() -> gr.Blocks:
                 gr.update(label=t("toolbox.data_file", lang)),           # tb_con_file
                 gr.update(label=t("toolbox.text_col", lang)),            # tb_con_tcol
                 gr.update(label=t("toolbox.themes_input", lang)),        # tb_con_themes
+                gr.update(value=t("toolbox.add_llm", lang)),             # tb_con_add
+                gr.update(value=t("toolbox.remove_llm", lang)),          # tb_con_rm
                 gr.update(value=t("consensus.run_btn", lang)),           # tb_con_btn
                 gr.update(label=t("consensus.summary", lang)),           # tb_con_summary
                 gr.update(label=t("consensus.results", lang)),           # tb_con_results
@@ -1741,9 +1790,10 @@ def create_app() -> gr.Blocks:
             qt_s6_md, qt_xbtn, qt_xfile,
             # ---- Toolbox ----
             tb_intro_md,
-            tb_icr_md, tb_icr_f1, tb_icr_c1, tb_icr_f2, tb_icr_c2,
+            tb_icr_md, tb_icr_file, tb_icr_cols,
             tb_icr_mode, tb_icr_btn, tb_icr_out,
             tb_con_md, tb_con_file, tb_con_tcol, tb_con_themes,
+            tb_con_add, tb_con_rm,
             tb_con_btn, tb_con_summary, tb_con_results, tb_con_agreement,
             tb_meth_md, tb_meth_log, tb_meth_log_btn, tb_meth_en, tb_meth_zh,
         ]

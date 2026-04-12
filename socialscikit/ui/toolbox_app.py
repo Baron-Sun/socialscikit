@@ -20,58 +20,176 @@ from socialscikit.qualikit.theme_definer import Theme
 
 logger = logging.getLogger(__name__)
 
+# Max number of LLM slots pre-created in the Consensus UI
+MAX_LLM_SLOTS = 5
+
 
 # ---------------------------------------------------------------------------
 # ICR Calculator
 # ---------------------------------------------------------------------------
 
 
-def _compute_icr_from_files(file1, col1, file2, col2, mode):
-    """Standalone ICR: upload two CSV files, pick label columns, compute agreement.
+def _icr_on_upload(file):
+    """When a CSV is uploaded, return its column names for the CheckboxGroup."""
+    if file is None:
+        return [], ""
+    try:
+        import gradio as gr
+        df = pd.read_csv(file.name if hasattr(file, "name") else file)
+        cols = df.columns.tolist()
+        return gr.update(choices=cols, value=[]), f"{len(df)} rows, {len(cols)} columns"
+    except Exception as e:
+        return [], f"Failed to read: {e}"
+
+
+def _compute_icr(file, selected_cols, mode):
+    """Compute ICR from one CSV with N selected coder columns.
+
+    Auto-selects metric:
+    - 2 coders → Cohen's Kappa + Krippendorff's Alpha + per-category
+    - 3+ coders → Krippendorff's Alpha only (Cohen's Kappa is 2-coder only)
 
     Parameters
     ----------
-    file1, file2 : uploaded CSV files (Gradio File objects)
-    col1, col2 : column names containing labels
+    file : uploaded CSV
+    selected_cols : list[str] — selected column names (each = one coder)
     mode : "single-label" or "multi-label"
     """
-    if file1 is None or file2 is None:
-        return "Please upload both CSV files."
+    if file is None:
+        return "Please upload a CSV file."
+
+    if not selected_cols or len(selected_cols) < 2:
+        return "Please select at least 2 coder columns."
 
     try:
-        df1 = pd.read_csv(file1.name if hasattr(file1, "name") else file1)
-        df2 = pd.read_csv(file2.name if hasattr(file2, "name") else file2)
+        df = pd.read_csv(file.name if hasattr(file, "name") else file)
     except Exception as e:
         return f"Failed to read CSV: {e}"
 
-    c1 = (col1 or "label").strip()
-    c2 = (col2 or "label").strip()
+    for col in selected_cols:
+        if col not in df.columns:
+            return f"Column '{col}' not found."
 
-    if c1 not in df1.columns:
-        return f"Column '{c1}' not found in File 1. Available: {', '.join(df1.columns[:10])}"
-    if c2 not in df2.columns:
-        return f"Column '{c2}' not found in File 2. Available: {', '.join(df2.columns[:10])}"
-
-    labels1 = df1[c1].astype(str).tolist()
-    labels2 = df2[c2].astype(str).tolist()
-
-    min_len = min(len(labels1), len(labels2))
-    if min_len == 0:
-        return "No data found in the specified columns."
-    labels1 = labels1[:min_len]
-    labels2 = labels2[:min_len]
-
+    n_coders = len(selected_cols)
     calc = ICRCalculator()
 
     if mode == "multi-label":
-        # For multi-label: split comma-separated values into sets
-        themes1 = [set(s.strip() for s in v.split(",") if s.strip()) for v in labels1]
-        themes2 = [set(s.strip() for s in v.split(",") if s.strip()) for v in labels2]
-        report = calc.compute_all_multilabel(themes1, themes2)
-    else:
-        report = calc.compute_all(labels1, labels2)
+        # Multi-label: comma-separated values → sets
+        if n_coders == 2:
+            themes1 = [
+                set(s.strip() for s in str(v).split(",") if s.strip())
+                for v in df[selected_cols[0]].fillna("")
+            ]
+            themes2 = [
+                set(s.strip() for s in str(v).split(",") if s.strip())
+                for v in df[selected_cols[1]].fillna("")
+            ]
+            report = calc.compute_all_multilabel(themes1, themes2)
+            report.coder_labels = selected_cols
+            report.summary_text = calc.format_report(report, multilabel=True)
+            return report.summary_text
+        else:
+            # 3+ coders multi-label: pairwise Jaccard average
+            from socialscikit.core.icr import ICRReport, ICRResult
+            all_themes_per_coder = []
+            for col in selected_cols:
+                themes = [
+                    set(s.strip() for s in str(v).split(",") if s.strip())
+                    for v in df[col].fillna("")
+                ]
+                all_themes_per_coder.append(themes)
 
-    return report.summary_text
+            # Pairwise Jaccard
+            from itertools import combinations
+            pair_jaccards = []
+            pair_labels = []
+            for i, j in combinations(range(n_coders), 2):
+                r = calc.compute_multilabel_agreement(
+                    all_themes_per_coder[i], all_themes_per_coder[j]
+                )
+                pair_jaccards.append(r.value)
+                pair_labels.append(f"{selected_cols[i]} vs {selected_cols[j]}: {r.value:.4f}")
+
+            avg_jaccard = sum(pair_jaccards) / len(pair_jaccards)
+            lines = [
+                f"═══ Inter-Coder Reliability Report ({n_coders} coders, multi-label) ═══",
+                "",
+                f"Coders: {', '.join(selected_cols)}",
+                f"Items: {len(df)}",
+                "",
+                f"Average pairwise Jaccard: {avg_jaccard:.4f}  ({calc._interpret_jaccard(avg_jaccard)})",
+                "",
+                "Pairwise breakdown:",
+            ]
+            for lbl in pair_labels:
+                lines.append(f"  {lbl}")
+            return "\n".join(lines)
+
+    else:
+        # Single-label mode
+        if n_coders == 2:
+            labels1 = df[selected_cols[0]].astype(str).tolist()
+            labels2 = df[selected_cols[1]].astype(str).tolist()
+            report = calc.compute_all(labels1, labels2)
+            report.coder_labels = selected_cols
+            report.summary_text = calc.format_report(report)
+            return report.summary_text
+        else:
+            # 3+ coders: Krippendorff's Alpha only
+            # Build reliability matrix: (n_items, n_coders)
+            from socialscikit.core.icr import ICRReport, ICRResult
+            reliability_matrix = []
+            for _, row in df.iterrows():
+                item = []
+                for col in selected_cols:
+                    val = row[col]
+                    if pd.isna(val) or str(val).strip() == "":
+                        item.append(None)
+                    else:
+                        item.append(str(val).strip())
+                reliability_matrix.append(item)
+
+            alpha_result = calc.compute_krippendorffs_alpha(reliability_matrix)
+
+            # Also compute pairwise Cohen's Kappa for reference
+            from itertools import combinations
+            pair_kappas = []
+            pair_labels = []
+            for i, j in combinations(range(n_coders), 2):
+                c_i = df[selected_cols[i]].astype(str).tolist()
+                c_j = df[selected_cols[j]].astype(str).tolist()
+                r = calc.compute_cohens_kappa(c_i, c_j)
+                pair_kappas.append(r.value)
+                pair_labels.append(
+                    f"{selected_cols[i]} vs {selected_cols[j]}: "
+                    f"κ = {r.value:.4f} ({r.interpretation})"
+                )
+
+            # Collect all categories
+            all_cats = set()
+            for row in reliability_matrix:
+                for v in row:
+                    if v is not None:
+                        all_cats.add(v)
+
+            lines = [
+                f"═══ Inter-Coder Reliability Report ({n_coders} coders) ═══",
+                "",
+                f"Coders: {', '.join(selected_cols)}",
+                f"Items: {len(reliability_matrix)}",
+                f"Categories: {len(all_cats)}  ({', '.join(sorted(all_cats)[:10])}{'...' if len(all_cats) > 10 else ''})",
+                "",
+                f"Krippendorff's Alpha: {alpha_result.value:.4f}  ({alpha_result.interpretation})",
+                "",
+                "Pairwise Cohen's Kappa:",
+            ]
+            for lbl in pair_labels:
+                lines.append(f"  {lbl}")
+
+            avg_kappa = sum(pair_kappas) / len(pair_kappas) if pair_kappas else 0
+            lines.append(f"\nAverage pairwise Kappa: {avg_kappa:.4f}  ({calc.interpret_kappa(avg_kappa)})")
+
+            return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -79,11 +197,12 @@ def _compute_icr_from_files(file1, col1, file2, col2, mode):
 # ---------------------------------------------------------------------------
 
 
-def _run_standalone_consensus(
-    data_file, text_col, themes_text,
-    b1, m1, k1, b2, m2, k2, b3, m3, k3,
-):
-    """Standalone consensus coding: upload CSV + define themes, configure 2-3 LLMs."""
+def _run_standalone_consensus(data_file, text_col, themes_text, *llm_args):
+    """Standalone consensus coding with variable number of LLMs.
+
+    llm_args is a flat tuple: (b1, m1, k1, b2, m2, k2, ..., bN, mN, kN)
+    for up to MAX_LLM_SLOTS slots.
+    """
     if data_file is None:
         return "Please upload a data file.", None, ""
 
@@ -107,22 +226,25 @@ def _run_standalone_consensus(
     theme_lines = [line.strip() for line in themes_text.strip().split("\n") if line.strip()]
     themes = []
     for line in theme_lines:
-        # Support "name: description" or just "name"
         if ":" in line:
             name, desc = line.split(":", 1)
             themes.append(Theme(name=name.strip(), description=desc.strip()))
         else:
             themes.append(Theme(name=line, description=""))
 
-    # Build LLM clients
+    # Build LLM clients from variable-length args (groups of 3)
     clients = []
-    for backend, model, api_key in [(b1, m1, k1), (b2, m2, k2), (b3, m3, k3)]:
-        if model and model.strip():
+    args = list(llm_args)
+    for i in range(0, len(args), 3):
+        if i + 2 >= len(args):
+            break
+        backend, model, api_key = args[i], args[i + 1], args[i + 2]
+        if model and str(model).strip():
             if not api_key and backend != "ollama":
                 continue
             clients.append(LLMClient(
-                backend=backend, model=model.strip(),
-                api_key=api_key.strip() if api_key else None,
+                backend=backend, model=str(model).strip(),
+                api_key=str(api_key).strip() if api_key else None,
             ))
 
     if len(clients) < 2:
@@ -204,11 +326,9 @@ def _generate_methods_from_log(log_file):
         meta.consensus_model_names = log.get("consensus_model_names", [])
         meta.consensus_agreement = log.get("consensus_agreement", 0.0)
         meta.deidentification_performed = log.get("deidentification_performed", False)
-        # Confidence tiers
         meta.n_high_confidence = log.get("n_high_confidence", 0)
         meta.n_medium_confidence = log.get("n_medium_confidence", 0)
         meta.n_low_confidence = log.get("n_low_confidence", 0)
-        # Review stats
         review = log.get("review_stats", {})
         meta.n_accepted = review.get("accepted", 0)
         meta.n_rejected = review.get("rejected", 0)
@@ -227,10 +347,8 @@ def _generate_methods_from_log(log_file):
 
 def _generate_methods_from_form(
     pipeline_type,
-    # QuantiKit fields
     qt_n_samples, qt_n_classes, qt_class_labels, qt_model_name,
     qt_accuracy, qt_macro_f1, qt_cohens_kappa,
-    # QualiKit fields
     ql_n_segments, ql_n_themes, ql_theme_names, ql_model_name,
     ql_consensus_used, ql_n_consensus_models,
 ):
