@@ -1,0 +1,6 @@
+id,text,label
+1,这个手机壳质量非常好，手感也很舒服，值得购买。,正面
+2,快递太慢了，等了整整一个星期才到，而且包装破损。,负面
+3,产品还行吧，没有特别惊喜也没什么问题。,中性
+4,Example text for classification. Replace with your own data.,positive
+5,Another example row. You can add more rows below.,negative

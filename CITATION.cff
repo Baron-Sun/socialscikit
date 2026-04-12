@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use SocialSciKit in your research, please cite the following paper."
+title: "SocialSciKit"
+type: software
+license: MIT
+repository-code: "https://github.com/Baron-Sun/socialscikit"
+preferred-citation:
+  type: conference-paper
+  title: "Creation of the Chinese Adaptive Policy Communication Corpus"
+  authors:
+    - family-names: Sun
+      given-names: Bolun
+    - family-names: Chang
+      given-names: Charles
+    - family-names: Ang
+      given-names: Yuen Yuen
+    - family-names: Hao
+      given-names: Pingxu
+    - family-names: Mu
+      given-names: Ruotong
+    - family-names: Xu
+      given-names: Yuchen
+    - family-names: Zhang
+      given-names: Zhengxin
+  collection-title: "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL 2026)"
+  year: 2026
+  date-published: "2025-10-10"

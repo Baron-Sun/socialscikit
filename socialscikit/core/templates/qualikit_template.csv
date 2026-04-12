@@ -1,0 +1,6 @@
+id,speaker_id,text,timestamp
+1,S01,张女士告诉我她在社区医院看病很方便。,00:01:30
+2,S01,以前要去大医院排队，现在在社区就能解决。,00:02:00
+3,I01,您觉得这些服务质量怎么样？,00:02:30
+4,S01,基本的检查和常见药还是可以的，但复杂问题处理不了。,00:03:00
+5,S02,Replace with your own interview data. Keep the column format.,00:04:00
