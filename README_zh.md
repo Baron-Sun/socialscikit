@@ -344,6 +344,7 @@ CITATION.cff                      # 引用元数据
 
 方法推荐引擎和工作流设计基于以下计算社会科学文献：
 
+- Sun, B., Chang, C., Ang, Y. Y., Mu, R., Xu, Y. & Zhang, Z. (2026). Creation of the Chinese Adaptive Policy Communication Corpus. *ACL 2026*.
 - Carlson, K. et al. (2026). The use of LLMs to annotate data in management research. *Strategic Management Journal*.
 - Chae, Y. & Davidson, T. (2025). Large Language Models for text classification. *Sociological Methods & Research*.
 - Do, S., Ollion, E. & Shen, R. (2024). The augmented social scientist. *Sociological Methods & Research*, 53(3).
@@ -362,7 +363,7 @@ CITATION.cff                      # 引用元数据
 ```bibtex
 @inproceedings{sun2026creation,
   title     = {Creation of the {Chinese} Adaptive Policy Communication Corpus},
-  author    = {Sun, Bolun and Chang, Charles and Ang, Yuen Yuen and Hao, Pingxu and Mu, Ruotong and Xu, Yuchen and Zhang, Zhengxin},
+  author    = {Sun, Bolun and Chang, Charles and Ang, Yuen Yuen and Mu, Ruotong and Xu, Yuchen and Zhang, Zhengxin},
   booktitle = {Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL 2026)},
   year      = {2026}
 }
@@ -416,3 +417,9 @@ python -c "from socialscikit.ui.main_app import create_app; create_app().launch(
 研究方向：计算社会科学、自然语言处理、人本人工智能
 
 邮箱：bolun.sun@kellogg.northwestern.edu | 主页：[baron-sun.github.io](https://baron-sun.github.io/)
+
+---
+
+## 参与贡献
+
+本项目持续维护和更新中，欢迎提出建议、反馈问题或贡献代码！请通过 [GitHub Issues](https://github.com/Baron-Sun/socialscikit/issues) 提交，或直接发起 Pull Request。
