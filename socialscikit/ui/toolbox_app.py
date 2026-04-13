@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
+from pathlib import Path
 
 import pandas as pd
 
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 # Max number of LLM slots pre-created in the Consensus UI
 MAX_LLM_SLOTS = 5
+
+# Example files directory
+_EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
 
 
 # ---------------------------------------------------------------------------
@@ -382,3 +386,28 @@ def _generate_methods_from_form(
         return "Please select a pipeline type.", ""
 
     return section.text_en, section.text_zh
+
+
+# ---------------------------------------------------------------------------
+# Example file downloaders
+# ---------------------------------------------------------------------------
+
+
+def _download_icr_example():
+    """Return the ICR example CSV path."""
+    return str(_EXAMPLES_DIR / "icr_example.csv")
+
+
+def _download_consensus_example():
+    """Return the Consensus Coding example CSV path."""
+    return str(_EXAMPLES_DIR / "consensus_example.csv")
+
+
+def _download_methods_example_qt():
+    """Return the QuantiKit pipeline log example JSON path."""
+    return str(_EXAMPLES_DIR / "methods_log_quantikit.json")
+
+
+def _download_methods_example_ql():
+    """Return the QualiKit pipeline log example JSON path."""
+    return str(_EXAMPLES_DIR / "methods_log_qualikit.json")
