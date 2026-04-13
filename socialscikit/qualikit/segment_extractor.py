@@ -46,6 +46,7 @@ class ExtractionResult:
     sub_theme: str  # sub-theme label
     confidence: float  # 0.0 – 1.0
     reasoning: str = ""
+    evidence_span: str = ""  # verbatim quote from text supporting the coding
     position: TextPosition | None = None
 
 
@@ -87,9 +88,10 @@ _CLASSIFICATION_PROMPT = """\
 2. 只在文本明确涉及时才标记，避免过度匹配
 3. 不相关的段落不要包含在结果中
 4. 如果研究问题指定了子主题列表，sub_theme 必须从中选择；如果标注了「自动生成」，请自行生成 2-8 字的子主题标签
+5. evidence_span: 从原文中逐字复制最能支持该编码判断的关键短语或句子（原文原样，不要改写）
 
 仅返回 JSON，不要 markdown 代码块：
-{{"matches": [{{"segment_id": 1, "rq_id": "RQ1", "sub_theme": "子主题名", "confidence": 0.85, "reasoning": "简要依据"}}]}}"""
+{{"matches": [{{"segment_id": 1, "rq_id": "RQ1", "sub_theme": "子主题名", "confidence": 0.85, "reasoning": "简要依据", "evidence_span": "原文中的关键句"}}]}}"""
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +276,7 @@ class SegmentExtractor:
                 sub_theme=sub_theme or "未分类",
                 confidence=round(confidence, 3),
                 reasoning=str(item.get("reasoning", "")).strip(),
+                evidence_span=str(item.get("evidence_span", "")).strip(),
             ))
 
         return results
