@@ -23,10 +23,11 @@
 
 SocialSciKit is an open-source Python toolkit that enables social science researchers to perform text analysis **without writing a single line of code**. It provides a Gradio-based web interface with full bilingual support (English / Chinese).
 
-Two core modules:
+Three core modules:
 
 - **QuantiKit** — End-to-end text classification pipeline (method recommendation &rarr; annotation &rarr; prompt/fine-tuning classification &rarr; evaluation &rarr; export)
 - **QualiKit** — End-to-end qualitative coding pipeline (upload &rarr; de-identification &rarr; research framework &rarr; LLM coding &rarr; human review &rarr; export)
+- **Toolbox** — Standalone research methods tools: Inter-Coder Reliability (ICR) calculator, Multi-LLM Consensus Coding, and Methods Section Generator
 
 ---
 
@@ -36,6 +37,7 @@ Two core modules:
 - [Quick Start](#quick-start)
 - [QuantiKit: Text Classification](#quantikit-text-classification)
 - [QualiKit: Qualitative Coding](#qualikit-qualitative-coding)
+- [Toolbox: Research Methods Tools](#toolbox-research-methods-tools)
 - [Supported LLM Backends](#supported-llm-backends)
 - [Example Datasets](#example-datasets)
 - [Project Structure](#project-structure)
@@ -238,6 +240,41 @@ QualiKit supports the full qualitative coding workflow for interview transcripts
 
 ---
 
+## Toolbox: Research Methods Tools
+
+The Toolbox provides standalone research utilities that work independently or in combination with QuantiKit / QualiKit.
+
+### ICR Calculator
+
+Compute inter-coder reliability for 2 or more coders with automatic metric selection:
+
+| Scenario | Metric |
+|----------|--------|
+| 2 coders, single-label | Cohen's Kappa + Krippendorff's Alpha + per-category agreement |
+| 3+ coders, single-label | Krippendorff's Alpha + pairwise Cohen's Kappa |
+| 2 coders, multi-label | Jaccard index (pairwise) |
+| 3+ coders, multi-label | Average pairwise Jaccard |
+
+- Upload a CSV with coder columns, select which columns to compare
+- Interpretation follows the Landis & Koch (1977) scale
+
+### Consensus Coding
+
+Multi-LLM majority-vote coding for qualitative data:
+
+- Configure 2&ndash;5 LLM backends (OpenAI, Anthropic, Ollama) with independent models
+- Each LLM codes every text segment; final label is determined by majority vote
+- Agreement statistics across LLMs are reported automatically
+
+### Methods Section Generator
+
+Auto-generate a methods section paragraph (English + Chinese) for your paper:
+
+- **From pipeline log**: QuantiKit and QualiKit can export a pipeline log (JSON) capturing all metadata (sample size, model, metrics, themes, etc.). Import the log and generate a ready-to-use methods paragraph.
+- **Manual input**: Fill in metadata fields manually if you prefer not to use the pipeline log.
+
+---
+
 ## Supported LLM Backends
 
 | Backend | Example Models | Use Case |
@@ -258,12 +295,16 @@ ollama pull llama3
 
 The `examples/` directory contains ready-to-use sample data:
 
-| File | Type | Description |
-|------|------|-------------|
+| File | Module | Description |
+|------|--------|-------------|
 | `sentiment_example.csv` | QuantiKit | 50 Chinese product/service reviews with 3 sentiment labels |
 | `policy_example.csv` | QuantiKit | 40 Chinese policy text excerpts with 8 policy-instrument labels |
 | `interview_example.txt` | QualiKit | Single-person community healthcare interview transcript |
 | `interview_focus_group.txt` | QualiKit | 4-person focus group on elderly digital service experiences |
+| `icr_example.csv` | Toolbox | 20 policy texts coded by 3 coders (A/B/C) for ICR calculation |
+| `consensus_example.csv` | Toolbox | 15 interview segments for multi-LLM consensus coding |
+| `methods_log_quantikit.json` | Toolbox | Sample QuantiKit pipeline log for methods generation |
+| `methods_log_qualikit.json` | Toolbox | Sample QualiKit pipeline log for methods generation |
 
 ### Cookbook: Sentiment Classification (QuantiKit)
 
@@ -298,6 +339,8 @@ socialscikit/
 │   ├── data_validator.py         # Schema validation + auto-fix
 │   ├── data_diagnostics.py       # Data quality diagnostics report
 │   ├── llm_client.py             # Unified LLM client (OpenAI/Anthropic/Ollama)
+│   ├── icr.py                    # Inter-coder reliability (Kappa/Alpha/Jaccard)
+│   ├── methods_writer.py         # Methods section generator (EN/ZH templates)
 │   └── templates/                # Template files for download
 │
 ├── quantikit/                    # Text classification module
@@ -322,12 +365,14 @@ socialscikit/
 │   ├── confidence_ranker.py      # Confidence scoring & ranking
 │   ├── coding_reviewer.py        # Human-in-the-loop coding review
 │   ├── extraction_reviewer.py    # Extraction result review
+│   ├── consensus.py              # Multi-LLM consensus coding (majority vote)
 │   └── exporter.py               # Excel / Markdown export
 │
 ├── ui/                           # Gradio web interface
-│   ├── main_app.py               # Unified app (Home + QuantiKit + QualiKit)
+│   ├── main_app.py               # Unified app (Home + QuantiKit + QualiKit + Toolbox)
 │   ├── quantikit_app.py          # QuantiKit UI callbacks
 │   ├── qualikit_app.py           # QualiKit UI callbacks
+│   ├── toolbox_app.py            # Toolbox UI callbacks (ICR/Consensus/Methods)
 │   └── i18n.py                   # Internationalization (EN / ZH)
 │
 ├── cli.py                        # Command-line entry point
