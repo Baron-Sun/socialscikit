@@ -560,6 +560,22 @@ _T = {
         "en": "Add",
         "zh": "添加",
     },
+    "ql.s5.charts_title": {
+        "en": "Visualization Dashboard",
+        "zh": "可视化仪表盘",
+    },
+    "ql.s5.review_progress": {
+        "en": "Review Progress",
+        "zh": "审查进度",
+    },
+    "ql.s5.confidence": {
+        "en": "Confidence Distribution",
+        "zh": "置信度分布",
+    },
+    "ql.s5.themes": {
+        "en": "Theme Distribution",
+        "zh": "主题分布",
+    },
 
     # ======================================================================
     # QualiKit Step 6 - Export
@@ -1383,6 +1399,18 @@ _T = {
     "qt.s5.report": {
         "en": "Evaluation report",
         "zh": "评估报告",
+    },
+    "qt.s5.confusion_matrix": {
+        "en": "Confusion Matrix",
+        "zh": "混淆矩阵",
+    },
+    "qt.s5.per_class": {
+        "en": "Per-Class Metrics",
+        "zh": "各类别指标",
+    },
+    "qt.s5.text_report": {
+        "en": "Full Text Report",
+        "zh": "完整文字报告",
     },
 
     # ======================================================================

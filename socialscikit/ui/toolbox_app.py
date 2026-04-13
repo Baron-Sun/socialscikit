@@ -16,6 +16,7 @@ from socialscikit.core.methods_writer import (
     QuantiKitPipelineMetadata,
     QualiKitPipelineMetadata,
 )
+from socialscikit.core import charts
 from socialscikit.qualikit.consensus import ConsensusCoder
 from socialscikit.qualikit.theme_definer import Theme
 
@@ -194,6 +195,94 @@ def _compute_icr(file, selected_cols, mode):
             lines.append(f"\nAverage pairwise Kappa: {avg_kappa:.4f}  ({calc.interpret_kappa(avg_kappa)})")
 
             return "\n".join(lines)
+
+
+def _make_icr_chart(file, selected_cols, mode):
+    """Generate ICR agreement bar chart from the same inputs as _compute_icr.
+
+    Returns a single matplotlib figure showing pairwise agreement metrics.
+    """
+    if file is None or not selected_cols or len(selected_cols) < 2:
+        return None
+
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        df = pd.read_csv(file.name if hasattr(file, "name") else file)
+        calc = ICRCalculator()
+        n_coders = len(selected_cols)
+
+        from itertools import combinations
+
+        pair_names = []
+        pair_values = []
+
+        if mode == "multi-label":
+            all_themes = []
+            for col in selected_cols:
+                themes = [
+                    set(s.strip() for s in str(v).split(",") if s.strip())
+                    for v in df[col].fillna("")
+                ]
+                all_themes.append(themes)
+            for i, j in combinations(range(n_coders), 2):
+                r = calc.compute_multilabel_agreement(all_themes[i], all_themes[j])
+                pair_names.append(f"{selected_cols[i]}\nvs\n{selected_cols[j]}")
+                pair_values.append(r.value)
+        else:
+            for i, j in combinations(range(n_coders), 2):
+                c_i = df[selected_cols[i]].astype(str).tolist()
+                c_j = df[selected_cols[j]].astype(str).tolist()
+                r = calc.compute_cohens_kappa(c_i, c_j)
+                pair_names.append(f"{selected_cols[i]}\nvs\n{selected_cols[j]}")
+                pair_values.append(r.value)
+
+        if not pair_values:
+            return None
+
+        charts._setup_style()
+        n = len(pair_values)
+        figsize = (max(4, n * 1.5 + 1), 4)
+        fig, ax = plt.subplots(figsize=figsize, dpi=150)
+        fig.patch.set_facecolor("white")
+
+        colors = [charts.CAT_COLORS[i % len(charts.CAT_COLORS)] for i in range(n)]
+        bars = ax.bar(range(n), pair_values, color=colors, alpha=0.85,
+                      edgecolor="white", linewidth=0.5, width=0.6)
+
+        for bar, v in zip(bars, pair_values):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
+                    f"{v:.3f}", ha="center", va="bottom", fontsize=9,
+                    color=charts.PALETTE["text"], fontweight="500")
+
+        # Reference lines
+        ax.axhline(y=0.8, color=charts.PALETTE["secondary"], linewidth=0.8,
+                   linestyle="--", alpha=0.5)
+        ax.axhline(y=0.6, color=charts.PALETTE["warning"], linewidth=0.8,
+                   linestyle="--", alpha=0.5)
+        ax.text(n - 0.5, 0.81, "Good", fontsize=7,
+                color=charts.PALETTE["secondary"], alpha=0.7)
+        ax.text(n - 0.5, 0.61, "Moderate", fontsize=7,
+                color=charts.PALETTE["warning"], alpha=0.7)
+
+        ax.set_xticks(range(n))
+        ax.set_xticklabels(pair_names, fontsize=8)
+        ax.set_ylabel("Agreement" if mode == "multi-label" else "Cohen's κ",
+                       fontsize=10, color=charts.PALETTE["text_sec"])
+        ax.set_title("Pairwise Agreement", fontsize=12, fontweight="600",
+                     color=charts.PALETTE["text"], pad=10)
+        ax.set_ylim(0, max(max(pair_values) + 0.15, 1.0))
+        charts._clean_ax(ax)
+        ax.grid(axis="y", color=charts.PALETTE["grid"], linewidth=0.6)
+
+        fig.tight_layout(pad=1.2)
+        return fig
+    except Exception as e:
+        logger.warning("ICR chart failed: %s", e)
+        return None
 
 
 # ---------------------------------------------------------------------------

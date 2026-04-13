@@ -660,20 +660,28 @@ class TestRunClassification:
 class TestEvaluate:
     def test_no_data(self):
         result = _evaluate_results(None, None, "label")
-        assert "分类" in result
+        # Returns tuple: (text, html, cm_fig, pc_fig)
+        assert isinstance(result, tuple)
+        assert "分类" in result[0]
 
     def test_no_label_col(self):
         df = pd.DataFrame({"text": ["a"]})
         result_df = pd.DataFrame({"predicted_label": ["pos"]})
         result = _evaluate_results(result_df, df, "label")
-        assert "未找到" in result
+        assert isinstance(result, tuple)
+        assert "未找到" in result[0]
 
     def test_evaluation(self, sample_df):
         result_df = pd.DataFrame({
             "predicted_label": ["positive", "negative", "neutral", "positive", "positive"],
         })
         result = _evaluate_results(result_df, sample_df, "label")
-        assert "F1" in result or "Accuracy" in result
+        assert isinstance(result, tuple)
+        text, html, cm_fig, pc_fig = result
+        assert "F1" in text or "Accuracy" in text
+        assert html  # metrics HTML should be non-empty
+        assert cm_fig is not None  # confusion matrix figure
+        assert pc_fig is not None  # per-class figure
 
 
 # ---------------------------------------------------------------------------

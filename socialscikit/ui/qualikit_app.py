@@ -37,6 +37,8 @@ from socialscikit.qualikit.extraction_reviewer import ExtractionReviewer, Review
 from socialscikit.qualikit.segmenter import Segmenter
 from socialscikit.qualikit.segment_extractor import ResearchQuestion, SegmentExtractor
 from socialscikit.qualikit.theme_reviewer import ThemeReviewer
+from socialscikit.core import charts
+
 # ---------------------------------------------------------------------------
 # Shared instances
 # ---------------------------------------------------------------------------
@@ -680,6 +682,55 @@ def _ext_stats_text(session):
         f"⏳待审: {stats['pending']} | "
         f"进度: {stats['progress_pct']}%"
     )
+
+
+def _make_ql_charts(session):
+    """Generate QualiKit visualization charts for the review dashboard.
+
+    Returns
+    -------
+    tuple
+        (review_cards_html, review_progress_fig, confidence_fig, theme_fig)
+    """
+    _empty = ("", None, None, None)
+    if session is None or not session.items:
+        return _empty
+
+    try:
+        stats = _extraction_reviewer.stats(session)
+
+        # Metric cards HTML
+        html = charts.format_review_stats_html(
+            stats["total"], stats["accepted"], stats["edited"],
+            stats["rejected"], stats["pending"],
+        )
+
+        # Review progress donut
+        review_fig = charts.plot_review_progress(
+            stats["accepted"], stats["edited"],
+            stats["rejected"], stats["pending"],
+        )
+
+        # Confidence histogram
+        confidences = [
+            item.result.confidence
+            for item in session.items
+            if item.result.confidence is not None
+        ]
+        conf_fig = charts.plot_confidence_histogram(confidences)
+
+        # Theme / RQ distribution
+        themes: dict[str, int] = {}
+        for item in session.items:
+            rq = item.final_rq_label
+            themes[rq] = themes.get(rq, 0) + 1
+        theme_fig = charts.plot_theme_distribution(themes)
+
+        return html, review_fig, conf_fig, theme_fig
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Chart generation failed: %s", e)
+        return _empty
 
 
 def _run_extraction(raw_text, segments, rqs_text, backend, model, api_key):
