@@ -37,7 +37,6 @@ from socialscikit.qualikit.extraction_reviewer import ExtractionReviewer, Review
 from socialscikit.qualikit.segmenter import Segmenter
 from socialscikit.qualikit.segment_extractor import ResearchQuestion, SegmentExtractor
 from socialscikit.qualikit.theme_reviewer import ThemeReviewer
-
 # ---------------------------------------------------------------------------
 # Shared instances
 # ---------------------------------------------------------------------------
@@ -451,6 +450,67 @@ def _accept_all_high_coding(review_session_state):
 
 
 # ---------------------------------------------------------------------------
+# Step 4b: Export Pipeline Log
+# ---------------------------------------------------------------------------
+
+
+def _export_pipeline_log(ext_session_state, rqs_state, review_session_state):
+    """Export QualiKit pipeline metadata as JSON for the Toolbox Methods Generator."""
+    import json, tempfile
+
+    if ext_session_state is None:
+        return None
+
+    log = {"pipeline": "qualikit"}
+
+    # Segment & theme info from extraction session
+    if hasattr(ext_session_state, "results") and ext_session_state.results:
+        results = ext_session_state.results
+        log["n_segments"] = len(results)
+
+        # Collect all themes from extraction results
+        all_themes = set()
+        for r in results:
+            if hasattr(r, "themes"):
+                all_themes.update(r.themes)
+            elif hasattr(r, "research_question"):
+                all_themes.add(r.research_question)
+        if all_themes:
+            log["theme_names"] = sorted(all_themes)
+            log["n_themes"] = len(all_themes)
+
+    # Research questions
+    if rqs_state:
+        rq_names = []
+        for rq in rqs_state:
+            if hasattr(rq, "name"):
+                rq_names.append(rq.name)
+            elif hasattr(rq, "question"):
+                rq_names.append(rq.question)
+        if rq_names:
+            log["research_questions"] = rq_names
+
+    # Review stats
+    if review_session_state is not None:
+        stats = {"accepted": 0, "rejected": 0, "edited": 0, "pending": 0}
+        for tier in [review_session_state.high, review_session_state.medium, review_session_state.low]:
+            for item in tier:
+                action = item.action.value if hasattr(item.action, "value") else str(item.action)
+                if action in stats:
+                    stats[action] += 1
+                else:
+                    stats["pending"] += 1
+        log["review_stats"] = stats
+
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix="_qualikit_log.json", delete=False, encoding="utf-8",
+    )
+    json.dump(log, tmp, ensure_ascii=False, indent=2)
+    tmp.close()
+    return tmp.name
+
+
+# ---------------------------------------------------------------------------
 # Step 5: Export
 # ---------------------------------------------------------------------------
 
@@ -734,7 +794,41 @@ def _ext_show_context(session, index, raw_text):
     }
     status = status_map.get(item.action.value, item.action.value)
 
-    # --- Part 1: full segment text ---
+    # --- Part 1: full segment text (with evidence highlighting if available) ---
+    seg_text = item.result.text
+    evidence = getattr(item.result, "evidence_span", "")
+
+    # Build segment body — highlight evidence span inline if found
+    if evidence:
+        ev_lower = evidence.lower()
+        seg_lower = seg_text.lower()
+        ev_idx = seg_lower.find(ev_lower)
+        if ev_idx >= 0:
+            before = esc(seg_text[:ev_idx])
+            match_text = esc(seg_text[ev_idx:ev_idx + len(evidence)])
+            after = esc(seg_text[ev_idx + len(evidence):])
+            seg_body = (
+                f'{before}'
+                '<mark style="background:#D4EDDA;padding:2px 0;'
+                'border-bottom:2px solid #28a745;">'
+                f'{match_text}</mark>'
+                f'{after}'
+            )
+        else:
+            # Evidence not found verbatim — show segment + evidence block
+            seg_body = esc(seg_text)
+    else:
+        seg_body = esc(seg_text)
+
+    # Evidence block shown below segment text when present
+    evidence_html = ""
+    if evidence:
+        evidence_html = (
+            '<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:#f0f9f4;'
+            'border-left:3px solid #28a745;font-size:0.85rem;color:#333;">'
+            f'<strong>Evidence:</strong> \u201c{esc(evidence)}\u201d</div>'
+        )
+
     full_text_html = (
         '<div style="font-family:Inter,sans-serif;padding:1rem;background:#fff;'
         'border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.75rem;">'
@@ -747,7 +841,8 @@ def _ext_show_context(session, index, raw_text):
         '</div>'
         f'<div style="white-space:pre-wrap;line-height:1.8;font-size:0.92rem;'
         f'color:#333;background:#fafafa;padding:0.75rem;border-radius:4px;">'
-        f'{esc(item.result.text)}</div>'
+        f'{seg_body}</div>'
+        f'{evidence_html}'
         f'<div style="margin-top:0.5rem;font-size:0.85rem;color:#666;">'
         f'判断依据：{esc(item.result.reasoning)}</div>'
         '</div>'
@@ -1221,6 +1316,8 @@ def create_app() -> gr.Blocks:
         # =============================================================
         # Tab 4: LLM Coding
         # =============================================================
+        consensus_report_state = gr.State(None)
+
         with gr.Tab("4. 编码"):
             gr.Markdown("使用 LLM 对文本进行主题编码。需要先锁定主题框架。")
             with gr.Row():
@@ -1248,6 +1345,44 @@ def create_app() -> gr.Blocks:
                 outputs=[coding_review_state, code_review_msg],
             )
 
+            # --- Consensus Coding (Multi-LLM) ---
+            with gr.Accordion("共识编码（多模型）", open=False):
+                gr.Markdown(
+                    "使用 2–3 个 LLM 分别独立编码，仅保留多数模型一致同意的主题。"
+                )
+                gr.Markdown("**LLM 1**")
+                with gr.Row():
+                    con_b1 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="openai", label="后端 1")
+                    con_m1 = gr.Textbox(label="模型 1", value="gpt-4o-mini")
+                    con_k1 = gr.Textbox(label="API Key 1", type="password")
+                gr.Markdown("**LLM 2**")
+                with gr.Row():
+                    con_b2 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="anthropic", label="后端 2")
+                    con_m2 = gr.Textbox(label="模型 2", value="claude-sonnet-4-20250514")
+                    con_k2 = gr.Textbox(label="API Key 2", type="password")
+                gr.Markdown("**LLM 3**（可选）")
+                with gr.Row():
+                    con_b3 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="ollama", label="后端 3")
+                    con_m3 = gr.Textbox(label="模型 3", value="")
+                    con_k3 = gr.Textbox(label="API Key 3", type="password")
+
+                consensus_btn = gr.Button("运行共识编码", variant="primary")
+                consensus_summary = gr.Textbox(label="共识摘要", lines=10, interactive=False)
+                consensus_results_df = gr.Dataframe(label="共识结果", interactive=False)
+                consensus_agreement = gr.Textbox(label="一致性报告", lines=4, interactive=False)
+
+                consensus_btn.click(
+                    fn=_run_consensus_coding,
+                    inputs=[df_state, code_text_col, theme_session_state,
+                            con_b1, con_m1, con_k1,
+                            con_b2, con_m2, con_k2,
+                            con_b3, con_m3, con_k3],
+                    outputs=[coding_results_state, coding_review_state,
+                             consensus_report_state,
+                             consensus_summary, consensus_results_df,
+                             consensus_agreement],
+                )
+
         # =============================================================
         # Tab 5: Export
         # =============================================================
@@ -1268,6 +1403,32 @@ def create_app() -> gr.Blocks:
                 inputs=[coding_results_state, theme_session_state, coding_review_state],
                 outputs=[export_excel, export_memo, export_msg],
             )
+
+            # --- Inter-Coder Reliability ---
+            with gr.Accordion("编码者间信度 (ICR)", open=False):
+                gr.Markdown("对比人工审核结果与原始 LLM 编码，计算编码者间一致性。")
+                icr_ql_btn = gr.Button("计算 Human vs LLM 信度", variant="secondary")
+                icr_ql_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
+
+                icr_ql_btn.click(
+                    fn=_compute_qualikit_icr,
+                    inputs=[coding_results_state, coding_review_state],
+                    outputs=[icr_ql_output],
+                )
+
+            # --- Methods Section Generator ---
+            with gr.Accordion("方法论段落生成", open=False):
+                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
+                methods_ql_btn = gr.Button("生成方法论段落", variant="secondary")
+                methods_ql_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
+                methods_ql_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
+
+                methods_ql_btn.click(
+                    fn=_generate_ql_methods,
+                    inputs=[coding_results_state, theme_session_state,
+                            coding_review_state, consensus_report_state],
+                    outputs=[methods_ql_en, methods_ql_zh],
+                )
 
     return app
 

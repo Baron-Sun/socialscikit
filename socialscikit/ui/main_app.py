@@ -14,10 +14,12 @@ import gradio as gr
 import pandas as pd
 
 from socialscikit.core.data_loader import get_template_path
+from socialscikit.core.project_io import save_project, load_project
 from socialscikit.quantikit.feature_extractor import TASK_TYPES
 
 import socialscikit.ui.quantikit_app as qn
 import socialscikit.ui.qualikit_app as ql
+import socialscikit.ui.toolbox_app as tb
 from socialscikit.ui.i18n import t, LANGUAGES
 
 # ---------------------------------------------------------------------------
@@ -534,12 +536,15 @@ def _build_landing(lang: str = "en") -> str:
         '<div class="hero-sub">\n\n'
         f'{t("landing.subtitle", lang)}\n\n'
         '</div>\n\n---\n\n'
-        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0;">\n'
+        '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0;">\n'
         '<div class="module-card">\n\n'
         f'{t("landing.quantikit_card", lang)}\n\n'
         '</div>\n'
         '<div class="module-card">\n\n'
         f'{t("landing.qualikit_card", lang)}\n\n'
+        '</div>\n'
+        '<div class="module-card">\n\n'
+        f'{t("landing.toolbox_card", lang)}\n\n'
         '</div>\n</div>\n\n'
         f'{t("landing.quickstart", lang)}\n\n'
         f'{t("landing.examples", lang)}\n\n'
@@ -646,6 +651,23 @@ def create_app() -> gr.Blocks:
         # ==================================================================
         with gr.Tab("Home"):
             landing_md = gr.Markdown(value=_build_landing("en"))
+
+            with gr.Accordion(t("project.load_title", "en"), open=False):
+                gr.Markdown(t("project.load_desc", "en"))
+                with gr.Row():
+                    proj_load_file = gr.File(
+                        label=t("project.file", "en"),
+                        file_types=[".json"],
+                    )
+                    with gr.Column(scale=0, min_width=160):
+                        proj_load_btn = gr.Button(
+                            t("project.load_btn", "en"),
+                            variant="primary", size="sm",
+                        )
+                proj_load_msg = gr.Textbox(
+                    label=t("project.status", "en"),
+                    interactive=False, lines=1,
+                )
 
         # ==================================================================
         # QuantiKit
@@ -909,7 +931,8 @@ def create_app() -> gr.Blocks:
                 qt_s5_md = gr.Markdown(t("qt.s5.title", "en"))
                 qt_ebtn = gr.Button(t("qt.s5.run_btn", "en"), variant="primary")
                 qt_eout = gr.Textbox(label=t("qt.s5.report", "en"), lines=18, interactive=False)
-                qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol], outputs=[qt_eout])
+                qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol],
+                              outputs=[qt_eout])
 
             # -- 6. Export ------------------------------------------------
             with gr.Tab("Step 6 · Export"):
@@ -917,6 +940,18 @@ def create_app() -> gr.Blocks:
                 qt_xbtn = gr.Button(t("qt.s6.export_btn", "en"), variant="primary")
                 qt_xfile = gr.File(label=t("qt.s6.file", "en"))
                 qt_xbtn.click(fn=qn._export_results, inputs=[qt_result_df], outputs=[qt_xfile])
+
+                qt_log_btn = gr.Button(t("toolbox.export_log", "en"), variant="secondary")
+                qt_log_file = gr.File(label="Pipeline Log")
+                qt_log_btn.click(fn=qn._export_pipeline_log,
+                                 inputs=[qt_result_df, qt_df, qt_lcol],
+                                 outputs=[qt_log_file])
+
+                with gr.Accordion(t("project.save_title", "en"), open=False):
+                    proj_qt_save_btn = gr.Button(
+                        t("project.save_btn", "en"), variant="secondary",
+                    )
+                    proj_qt_save_file = gr.File(label=t("project.file", "en"))
 
         # ==================================================================
         # QualiKit
@@ -1186,6 +1221,20 @@ def create_app() -> gr.Blocks:
                     outputs=[ql_xl_file, ql_xl_msg],
                 )
 
+                ql_log_btn = gr.Button(t("toolbox.export_log", "en"), variant="secondary")
+                ql_log_file = gr.File(label="Pipeline Log")
+                ql_log_btn.click(
+                    fn=ql._export_pipeline_log,
+                    inputs=[ql_ext_session, ql_rqs, ql_ext_session],
+                    outputs=[ql_log_file],
+                )
+
+                with gr.Accordion(t("project.save_title", "en"), open=False):
+                    proj_ql_save_btn = gr.Button(
+                        t("project.save_btn", "en"), variant="secondary",
+                    )
+                    proj_ql_save_file = gr.File(label=t("project.file", "en"))
+
             # ==========================================================
             # Cross-tab event wiring
             # (placed here so all components are defined)
@@ -1265,6 +1314,290 @@ def create_app() -> gr.Blocks:
             )
 
         # ==================================================================
+        # Project Save / Load wiring
+        # ==================================================================
+
+        _project_state_inputs = [
+            qt_df, qt_result_df, qt_ann_session,
+            ql_raw_text, ql_segments, ql_rqs, ql_ext_session,
+            ql_lang,
+        ]
+        _project_state_keys = [
+            "qt_df", "qt_result_df", "qt_ann_session",
+            "ql_raw_text", "ql_segments", "ql_rqs", "ql_ext_session",
+            "ql_lang",
+        ]
+
+        def _save_project_fn(*state_values):
+            states = dict(zip(_project_state_keys, state_values))
+            json_str = save_project(states)
+            path = os.path.join(tempfile.gettempdir(), "socialscikit_project.json")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(json_str)
+            return path
+
+        # Load returns all state objects + a status message
+        _load_outputs = _project_state_inputs + [proj_load_msg]
+
+        def _load_project_fn(file):
+            n_states = len(_project_state_keys)
+            if file is None:
+                return [gr.update()] * n_states + ["Please upload a project file."]
+            try:
+                with open(file, "r", encoding="utf-8") as f:
+                    json_str = f.read()
+                states = load_project(json_str)
+                results = []
+                for key in _project_state_keys:
+                    results.append(states.get(key))
+                results.append("Project loaded successfully!")
+                return results
+            except Exception as e:
+                return [gr.update()] * n_states + [f"Load failed: {e}"]
+
+        proj_qt_save_btn.click(
+            fn=_save_project_fn,
+            inputs=_project_state_inputs,
+            outputs=[proj_qt_save_file],
+        )
+        proj_ql_save_btn.click(
+            fn=_save_project_fn,
+            inputs=_project_state_inputs,
+            outputs=[proj_ql_save_file],
+        )
+        proj_load_btn.click(
+            fn=_load_project_fn,
+            inputs=[proj_load_file],
+            outputs=_load_outputs,
+        )
+
+        # ==================================================================
+        # Toolbox
+        # ==================================================================
+        with gr.Tab(t("toolbox.title", "en")) as toolbox_tab:
+
+            tb_intro_md = gr.Markdown(t("toolbox.description", "en"))
+
+            # ---------- ICR Calculator ----------
+            with gr.Tab(t("toolbox.icr_tab", "en")) as tb_icr_tab:
+                tb_icr_md = gr.Markdown(t("icr.description", "en"))
+                with gr.Row():
+                    tb_icr_file = gr.File(label=t("toolbox.icr_upload", "en"), file_types=[".csv"])
+                    with gr.Column(scale=0, min_width=160):
+                        tb_icr_ex_btn = gr.Button(t("toolbox.download_example", "en"), variant="secondary", size="sm")
+                        tb_icr_ex_file = gr.File(label=t("toolbox.example_file", "en"), visible=False)
+                        tb_icr_ex_btn.click(fn=tb._download_icr_example, outputs=[tb_icr_ex_file])
+                tb_icr_info = gr.Textbox(label=t("toolbox.icr_file_info", "en"), interactive=False, lines=1)
+                tb_icr_cols = gr.CheckboxGroup(
+                    choices=[], label=t("toolbox.icr_select_cols", "en"),
+                    info=t("toolbox.icr_select_cols_info", "en"),
+                )
+                tb_icr_mode = gr.Radio(
+                    choices=["single-label", "multi-label"],
+                    value="single-label",
+                    label=t("toolbox.icr_mode", "en"),
+                    info=t("toolbox.icr_mode_info", "en"),
+                )
+                tb_icr_btn = gr.Button(t("icr.compute_btn", "en"), variant="primary")
+                tb_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=18, interactive=False)
+
+                tb_icr_file.change(
+                    fn=tb._icr_on_upload,
+                    inputs=[tb_icr_file],
+                    outputs=[tb_icr_cols, tb_icr_info],
+                )
+                tb_icr_btn.click(
+                    fn=tb._compute_icr,
+                    inputs=[tb_icr_file, tb_icr_cols, tb_icr_mode],
+                    outputs=[tb_icr_out],
+                )
+
+            # ---------- Consensus Coding ----------
+            with gr.Tab(t("toolbox.consensus_tab", "en")) as tb_con_tab:
+                tb_con_md = gr.Markdown(t("consensus.description", "en"))
+                with gr.Row():
+                    tb_con_file = gr.File(label=t("toolbox.data_file", "en"), file_types=[".csv"])
+                    tb_con_tcol = gr.Textbox(label=t("toolbox.text_col", "en"), value="text")
+                    with gr.Column(scale=0, min_width=160):
+                        tb_con_ex_btn = gr.Button(t("toolbox.download_example", "en"), variant="secondary", size="sm")
+                        tb_con_ex_file = gr.File(label=t("toolbox.example_file", "en"), visible=False)
+                        tb_con_ex_btn.click(fn=tb._download_consensus_example, outputs=[tb_con_ex_file])
+                tb_con_themes = gr.Textbox(
+                    label=t("toolbox.themes_input", "en"),
+                    placeholder="theme1: description\ntheme2: description\n...",
+                    lines=4,
+                )
+
+                # Dynamic LLM slots (up to 5, first 2 visible)
+                tb_con_llm_rows = []   # list of (gr.Row, backend, model, key)
+                tb_con_backends = []
+                tb_con_models = []
+                tb_con_keys = []
+                _defaults = [
+                    ("openai", "gpt-4o-mini"),
+                    ("anthropic", "claude-sonnet-4-20250514"),
+                    ("openai", "gpt-4o"),
+                    ("ollama", ""),
+                    ("anthropic", ""),
+                ]
+                for idx in range(tb.MAX_LLM_SLOTS):
+                    visible = idx < 2
+                    be_default, mod_default = _defaults[idx]
+                    with gr.Row(visible=visible) as llm_row:
+                        be = gr.Dropdown(
+                            choices=["openai", "anthropic", "ollama"],
+                            value=be_default,
+                            label=f"Backend {idx + 1}",
+                        )
+                        md = gr.Textbox(label=f"Model {idx + 1}", value=mod_default if visible else "")
+                        ky = gr.Textbox(label=f"API Key {idx + 1}", type="password")
+                    tb_con_llm_rows.append(llm_row)
+                    tb_con_backends.append(be)
+                    tb_con_models.append(md)
+                    tb_con_keys.append(ky)
+
+                tb_con_n_llms = gr.State(2)  # tracks how many slots are visible
+
+                with gr.Row():
+                    tb_con_add = gr.Button(t("toolbox.add_llm", "en"), variant="secondary", size="sm")
+                    tb_con_rm = gr.Button(t("toolbox.remove_llm", "en"), variant="secondary", size="sm")
+
+                def _add_llm_slot(n):
+                    n = min(n + 1, tb.MAX_LLM_SLOTS)
+                    updates = [gr.update(visible=(i < n)) for i in range(tb.MAX_LLM_SLOTS)]
+                    return [n] + updates
+
+                def _remove_llm_slot(n):
+                    n = max(n - 1, 2)
+                    updates = [gr.update(visible=(i < n)) for i in range(tb.MAX_LLM_SLOTS)]
+                    return [n] + updates
+
+                tb_con_add.click(
+                    fn=_add_llm_slot,
+                    inputs=[tb_con_n_llms],
+                    outputs=[tb_con_n_llms] + tb_con_llm_rows,
+                )
+                tb_con_rm.click(
+                    fn=_remove_llm_slot,
+                    inputs=[tb_con_n_llms],
+                    outputs=[tb_con_n_llms] + tb_con_llm_rows,
+                )
+
+                tb_con_btn = gr.Button(t("consensus.run_btn", "en"), variant="primary")
+                tb_con_summary = gr.Textbox(label=t("consensus.summary", "en"), lines=10, interactive=False)
+                tb_con_results = gr.Dataframe(label=t("consensus.results", "en"), interactive=False)
+                tb_con_agreement = gr.Textbox(label=t("consensus.agreement", "en"), lines=4, interactive=False)
+
+                # Collect all backend/model/key inputs in order
+                _con_inputs = [tb_con_file, tb_con_tcol, tb_con_themes]
+                for i in range(tb.MAX_LLM_SLOTS):
+                    _con_inputs.extend([tb_con_backends[i], tb_con_models[i], tb_con_keys[i]])
+
+                tb_con_btn.click(
+                    fn=tb._run_standalone_consensus,
+                    inputs=_con_inputs,
+                    outputs=[tb_con_summary, tb_con_results, tb_con_agreement],
+                )
+
+            # ---------- Methods Generator ----------
+            with gr.Tab(t("toolbox.methods_tab", "en")) as tb_meth_tab:
+                tb_meth_md = gr.Markdown(t("methods.description", "en"))
+
+                # Primary: import log
+                gr.Markdown(f"### {t('toolbox.import_log', 'en')}")
+                with gr.Row():
+                    tb_meth_log = gr.File(
+                        label=t("toolbox.import_log", "en"),
+                        file_types=[".json"],
+                    )
+                    with gr.Column(scale=0, min_width=200):
+                        tb_meth_ex_qt_btn = gr.Button(
+                            t("toolbox.example_qt_log", "en"),
+                            variant="secondary", size="sm",
+                        )
+                        tb_meth_ex_qt_file = gr.File(
+                            label=t("toolbox.example_file", "en"), visible=False,
+                        )
+                        tb_meth_ex_qt_btn.click(
+                            fn=tb._download_methods_example_qt,
+                            outputs=[tb_meth_ex_qt_file],
+                        )
+                        tb_meth_ex_ql_btn = gr.Button(
+                            t("toolbox.example_ql_log", "en"),
+                            variant="secondary", size="sm",
+                        )
+                        tb_meth_ex_ql_file = gr.File(
+                            label=t("toolbox.example_file", "en"), visible=False,
+                        )
+                        tb_meth_ex_ql_btn.click(
+                            fn=tb._download_methods_example_ql,
+                            outputs=[tb_meth_ex_ql_file],
+                        )
+                tb_meth_log_btn = gr.Button(t("methods.generate_btn", "en"), variant="primary")
+
+                tb_meth_en = gr.Textbox(label=t("methods.text_en", "en"), lines=8, interactive=True)
+                tb_meth_zh = gr.Textbox(label=t("methods.text_zh", "en"), lines=8, interactive=True)
+                gr.Markdown(t("methods.copy_hint", "en"))
+
+                tb_meth_log_btn.click(
+                    fn=tb._generate_methods_from_log,
+                    inputs=[tb_meth_log],
+                    outputs=[tb_meth_en, tb_meth_zh],
+                )
+
+                # Fallback: manual form
+                with gr.Accordion(t("toolbox.manual_input", "en"), open=False):
+                    tb_meth_type = gr.Radio(
+                        choices=["QuantiKit", "QualiKit"],
+                        value="QuantiKit",
+                        label=t("toolbox.pipeline_type", "en"),
+                    )
+                    # QuantiKit fields
+                    with gr.Group(visible=True) as tb_qt_group:
+                        with gr.Row():
+                            tb_qt_ns = gr.Number(label="N samples", value=0, precision=0)
+                            tb_qt_nc = gr.Number(label="N classes", value=0, precision=0)
+                        tb_qt_labels = gr.Textbox(label="Class labels (comma-separated)", value="")
+                        tb_qt_model = gr.Textbox(label="Model name", value="")
+                        with gr.Row():
+                            tb_qt_acc = gr.Number(label="Accuracy", value=0, precision=3)
+                            tb_qt_f1 = gr.Number(label="Macro F1", value=0, precision=3)
+                            tb_qt_kappa = gr.Number(label="Cohen's Kappa", value=0, precision=3)
+
+                    # QualiKit fields
+                    with gr.Group(visible=False) as tb_ql_group:
+                        with gr.Row():
+                            tb_ql_nseg = gr.Number(label="N segments", value=0, precision=0)
+                            tb_ql_nth = gr.Number(label="N themes", value=0, precision=0)
+                        tb_ql_themes = gr.Textbox(label="Theme names (comma-separated)", value="")
+                        tb_ql_model = gr.Textbox(label="Model name", value="")
+                        tb_ql_consensus = gr.Checkbox(label="Consensus coding used", value=False)
+                        tb_ql_ncon = gr.Number(label="N consensus models", value=0, precision=0)
+
+                    def _toggle_pipeline_fields(choice):
+                        return (
+                            gr.update(visible=choice == "QuantiKit"),
+                            gr.update(visible=choice == "QualiKit"),
+                        )
+
+                    tb_meth_type.change(
+                        fn=_toggle_pipeline_fields,
+                        inputs=[tb_meth_type],
+                        outputs=[tb_qt_group, tb_ql_group],
+                    )
+
+                    tb_meth_form_btn = gr.Button(t("methods.generate_btn", "en"), variant="secondary")
+                    tb_meth_form_btn.click(
+                        fn=tb._generate_methods_from_form,
+                        inputs=[tb_meth_type,
+                                tb_qt_ns, tb_qt_nc, tb_qt_labels, tb_qt_model,
+                                tb_qt_acc, tb_qt_f1, tb_qt_kappa,
+                                tb_ql_nseg, tb_ql_nth, tb_ql_themes, tb_ql_model,
+                                tb_ql_consensus, tb_ql_ncon],
+                        outputs=[tb_meth_en, tb_meth_zh],
+                    )
+
+        # ==================================================================
         # Language switching
         # ==================================================================
 
@@ -1276,6 +1609,12 @@ def create_app() -> gr.Blocks:
                 lang,
                 # Landing page
                 _build_landing(lang),
+                # Project Load UI (on Home tab)
+                gr.update(value=t("project.load_btn", lang)),        # proj_load_btn
+                gr.update(label=t("project.status", lang)),          # proj_load_msg
+                # Project Save buttons
+                gr.update(value=t("project.save_btn", lang)),        # proj_qt_save_btn
+                gr.update(value=t("project.save_btn", lang)),        # proj_ql_save_btn
                 # -- QualiKit Step 1 --
                 t("ql.s1.title", lang),                                  # ql_s1_md
                 gr.update(label=t("ql.s1.upload", lang)),                # ql_file
@@ -1492,6 +1831,33 @@ def create_app() -> gr.Blocks:
                 t("qt.s6.title", lang),                                  # qt_s6_md
                 gr.update(value=t("qt.s6.export_btn", lang)),            # qt_xbtn
                 gr.update(label=t("qt.s6.file", lang)),                  # qt_xfile
+                # -- Toolbox --
+                t("toolbox.description", lang),                          # tb_intro_md
+                t("icr.description", lang),                              # tb_icr_md
+                gr.update(label=t("toolbox.icr_upload", lang)),          # tb_icr_file
+                gr.update(label=t("toolbox.icr_select_cols", lang)),     # tb_icr_cols
+                gr.update(label=t("toolbox.icr_mode", lang)),            # tb_icr_mode
+                gr.update(value=t("icr.compute_btn", lang)),             # tb_icr_btn
+                gr.update(label=t("icr.report", lang)),                  # tb_icr_out
+                gr.update(value=t("toolbox.download_example", lang)),    # tb_icr_ex_btn
+                t("consensus.description", lang),                        # tb_con_md
+                gr.update(label=t("toolbox.data_file", lang)),           # tb_con_file
+                gr.update(label=t("toolbox.text_col", lang)),            # tb_con_tcol
+                gr.update(label=t("toolbox.themes_input", lang)),        # tb_con_themes
+                gr.update(value=t("toolbox.add_llm", lang)),             # tb_con_add
+                gr.update(value=t("toolbox.remove_llm", lang)),          # tb_con_rm
+                gr.update(value=t("consensus.run_btn", lang)),           # tb_con_btn
+                gr.update(label=t("consensus.summary", lang)),           # tb_con_summary
+                gr.update(label=t("consensus.results", lang)),           # tb_con_results
+                gr.update(label=t("consensus.agreement", lang)),         # tb_con_agreement
+                gr.update(value=t("toolbox.download_example", lang)),    # tb_con_ex_btn
+                t("methods.description", lang),                          # tb_meth_md
+                gr.update(label=t("toolbox.import_log", lang)),          # tb_meth_log
+                gr.update(value=t("methods.generate_btn", lang)),        # tb_meth_log_btn
+                gr.update(label=t("methods.text_en", lang)),             # tb_meth_en
+                gr.update(label=t("methods.text_zh", lang)),             # tb_meth_zh
+                gr.update(value=t("toolbox.example_qt_log", lang)),     # tb_meth_ex_qt_btn
+                gr.update(value=t("toolbox.example_ql_log", lang)),     # tb_meth_ex_ql_btn
             ]
 
         _lang_outputs = [
@@ -1499,6 +1865,9 @@ def create_app() -> gr.Blocks:
             ql_lang,
             # Landing
             landing_md,
+            # Project UI
+            proj_load_btn, proj_load_msg,
+            proj_qt_save_btn, proj_ql_save_btn,
             # Step 1
             ql_s1_md, ql_file, ql_tpl_btn, ql_tpl_file,
             ql_text_preview, ql_s1_seg_md, ql_seg_mode, ql_seg_cw,
@@ -1556,6 +1925,17 @@ def create_app() -> gr.Blocks:
             qt_s5_md, qt_ebtn, qt_eout,
             # ---- QuantiKit Step 6 ----
             qt_s6_md, qt_xbtn, qt_xfile,
+            # ---- Toolbox ----
+            tb_intro_md,
+            tb_icr_md, tb_icr_file, tb_icr_cols,
+            tb_icr_mode, tb_icr_btn, tb_icr_out,
+            tb_icr_ex_btn,
+            tb_con_md, tb_con_file, tb_con_tcol, tb_con_themes,
+            tb_con_add, tb_con_rm,
+            tb_con_btn, tb_con_summary, tb_con_results, tb_con_agreement,
+            tb_con_ex_btn,
+            tb_meth_md, tb_meth_log, tb_meth_log_btn, tb_meth_en, tb_meth_zh,
+            tb_meth_ex_qt_btn, tb_meth_ex_ql_btn,
         ]
 
         lang_selector.change(

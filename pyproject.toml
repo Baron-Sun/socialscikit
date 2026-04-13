@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "socialscikit"
 version = "0.1.0"
-description = "Zero-code toolkit for social science text analysis — classification (QuantiKit) and qualitative coding (QualiKit)"
+description = "Zero-code toolkit for social science text analysis — classification (QuantiKit), qualitative coding (QualiKit), and research methods tools (Toolbox)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "SocialSciKit Contributors" },
 ]
-keywords = ["social-science", "text-classification", "qualitative-coding", "NLP", "LLM"]
+keywords = ["social-science", "text-classification", "qualitative-coding", "inter-coder-reliability", "consensus-coding", "NLP", "LLM"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",

@@ -1,0 +1,14 @@
+{
+  "pipeline": "quantikit",
+  "n_samples": 500,
+  "n_classes": 5,
+  "class_labels": ["简政放权", "惩罚措施", "财政激励", "制度建设", "市场机制"],
+  "classification_method": "zero-shot",
+  "model_name": "gpt-4o-mini",
+  "model_backend": "openai",
+  "n_annotations": 100,
+  "accuracy": 0.823,
+  "macro_f1": 0.796,
+  "weighted_f1": 0.815,
+  "cohens_kappa": 0.771
+}

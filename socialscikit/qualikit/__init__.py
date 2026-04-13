@@ -13,9 +13,15 @@ from socialscikit.qualikit.extraction_reviewer import (
     ReviewAction,
     ReviewedExtraction,
 )
+from socialscikit.qualikit.consensus import (
+    ConsensusCoder,
+    ConsensusReport,
+    SegmentConsensus,
+)
 
 __all__ = [
     "Segmenter", "TextPosition", "TextSegment",
     "ExtractionReport", "ExtractionResult", "ResearchQuestion", "SegmentExtractor",
     "ExtractionReviewer", "ExtractionReviewSession", "ReviewAction", "ReviewedExtraction",
+    "ConsensusCoder", "ConsensusReport", "SegmentConsensus",
 ]

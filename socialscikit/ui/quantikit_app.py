@@ -34,7 +34,6 @@ from socialscikit.quantikit.feature_extractor import TASK_TYPES, FeatureExtracto
 from socialscikit.quantikit.method_recommender import MethodRecommender
 from socialscikit.quantikit.prompt_classifier import PromptClassifier
 from socialscikit.quantikit.prompt_optimizer import PromptOptimizer, PromptVariant
-
 logger = logging.getLogger(__name__)
 
 
@@ -1521,6 +1520,49 @@ def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_
 
 
 # ---------------------------------------------------------------------------
+# Step 5b: Export Pipeline Log
+# ---------------------------------------------------------------------------
+
+
+def _export_pipeline_log(result_df_state, df_state, label_col, pred_col="predicted_label"):
+    """Export QuantiKit pipeline metadata as JSON for the Toolbox Methods Generator."""
+    import json, tempfile
+
+    if result_df_state is None or df_state is None:
+        return None
+
+    log = {"pipeline": "quantikit", "n_samples": int(len(df_state))}
+
+    # Class info from predictions
+    if "predicted_label" in result_df_state.columns:
+        labels = result_df_state["predicted_label"].dropna().unique().tolist()
+        log["n_classes"] = len(labels)
+        log["class_labels"] = [str(l) for l in sorted(labels)]
+
+    # Evaluation metrics (re-compute if ground truth available)
+    if label_col and label_col in df_state.columns:
+        true_labels = df_state[label_col].dropna().astype(str).tolist()
+        pred_labels = result_df_state[pred_col].tolist()
+        min_len = min(len(true_labels), len(pred_labels))
+        true_labels = true_labels[:min_len]
+        pred_labels = pred_labels[:min_len]
+
+        evaluator = Evaluator()
+        report = evaluator.evaluate(true_labels, pred_labels)
+        log["accuracy"] = report.accuracy
+        log["macro_f1"] = report.macro_f1
+        log["weighted_f1"] = report.weighted_f1
+        log["cohens_kappa"] = report.cohens_kappa
+
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix="_quantikit_log.json", delete=False, encoding="utf-8",
+    )
+    json.dump(log, tmp, ensure_ascii=False, indent=2)
+    tmp.close()
+    return tmp.name
+
+
+# ---------------------------------------------------------------------------
 # Step 6: Export
 # ---------------------------------------------------------------------------
 
@@ -2008,6 +2050,8 @@ def create_app() -> gr.Blocks:
         # =============================================================
         # Tab 5: Evaluation
         # =============================================================
+        eval_report_state = gr.State(None)
+
         with gr.Tab("5. 评估"):
             gr.Markdown("将分类结果与真实标签对比，计算评估指标。")
             eval_label_col = gr.Textbox(label="真实标签列名", value="label")
@@ -2017,8 +2061,23 @@ def create_app() -> gr.Blocks:
             eval_btn.click(
                 fn=_evaluate_results,
                 inputs=[result_df_state, df_state, eval_label_col],
-                outputs=[eval_output],
+                outputs=[eval_output, eval_report_state],
             )
+
+            # --- Inter-Coder Reliability ---
+            with gr.Accordion("编码者间信度 (ICR)", open=False):
+                gr.Markdown("上传第二编码者（或人工标注）的标签 CSV，计算编码者间一致性。")
+                with gr.Row():
+                    icr_file = gr.File(label="第二编码者标签（CSV）", file_types=[".csv"])
+                    icr_second_col = gr.Textbox(label="标签列名", value="label")
+                icr_btn = gr.Button("计算编码者间信度", variant="secondary")
+                icr_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
+
+                icr_btn.click(
+                    fn=_compute_icr,
+                    inputs=[result_df_state, icr_file, icr_second_col],
+                    outputs=[icr_output],
+                )
 
         # =============================================================
         # Tab 6: Export
@@ -2033,6 +2092,19 @@ def create_app() -> gr.Blocks:
                 inputs=[result_df_state],
                 outputs=[export_file],
             )
+
+            # --- Methods Section Generator ---
+            with gr.Accordion("方法论段落生成", open=False):
+                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
+                methods_btn = gr.Button("生成方法论段落", variant="secondary")
+                methods_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
+                methods_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
+
+                methods_btn.click(
+                    fn=_generate_qt_methods,
+                    inputs=[result_df_state, df_state, eval_report_state],
+                    outputs=[methods_en, methods_zh],
+                )
 
     return app
 

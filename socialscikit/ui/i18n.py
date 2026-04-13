@@ -23,8 +23,8 @@ _T = {
         "zh": "# SocialSciKit",
     },
     "landing.subtitle": {
-        "en": "Zero-code text analysis toolkit for social science researchers",
-        "zh": "面向社会科学研究者的零代码文本分析工具",
+        "en": "Zero-code text analysis & research methods toolkit for social science researchers",
+        "zh": "面向社会科学研究者的零代码文本分析与研究方法工具包",
     },
     "landing.quantikit_card": {
         "en": (
@@ -70,18 +70,36 @@ _T = {
             "- 摘录表 + 共现矩阵 + 分析备忘录\n"
         ),
     },
+    "landing.toolbox_card": {
+        "en": (
+            "### Toolbox — Research Methods Tools\n\n"
+            "**Standalone tools** that work independently or together with QuantiKit / QualiKit:\n\n"
+            "- **ICR Calculator** — Inter-coder reliability (Cohen's Kappa, Krippendorff's Alpha, multi-label Jaccard); supports 2+ coders with auto metric selection\n"
+            "- **Consensus Coding** — Multi-LLM majority-vote coding with 2\u20135 configurable LLM backends\n"
+            "- **Methods Generator** — Auto-generate methods section paragraphs (EN/ZH) from pipeline logs or manual input\n"
+        ),
+        "zh": (
+            "### 工具箱 — 研究方法工具\n\n"
+            "**独立工具**，可单独使用或与 QuantiKit / QualiKit 搭配：\n\n"
+            "- **ICR 计算器** — 编码者间信度（Cohen's Kappa、Krippendorff's Alpha、多标签 Jaccard）；支持 2+ 编码者自动选择指标\n"
+            "- **共识编码** — 多 LLM 多数投票编码，支持 2\u20135 个可配置的 LLM 后端\n"
+            "- **方法论生成器** — 从流水线日志或手动输入自动生成方法部分段落（中英双语）\n"
+        ),
+    },
     "landing.quickstart": {
         "en": (
             "### Quick Start\n\n"
-            "1. Click the **QuantiKit** or **QualiKit** tab above to enter the corresponding module\n"
+            "1. Click the **QuantiKit**, **QualiKit**, or **Toolbox** tab above to enter the corresponding module\n"
             "2. Follow the numbered steps in order \u2014 results at each step can be reviewed and edited before proceeding\n"
-            "3. When LLM features are needed, provide an API Key (OpenAI / Anthropic) or use Ollama for local inference"
+            "3. When LLM features are needed, provide an API Key (OpenAI / Anthropic) or use Ollama for local inference\n"
+            "4. Use the **Toolbox** for standalone tools: ICR calculation, multi-LLM consensus coding, or auto-generating methods sections"
         ),
         "zh": (
             "### 快速开始\n\n"
-            "1. 点击上方 **QuantiKit** 或 **QualiKit** 标签页进入对应模块\n"
+            "1. 点击上方 **QuantiKit**、**QualiKit** 或 **工具箱** 标签页进入对应模块\n"
             "2. 按步骤编号依次操作 \u2014 每步结果可审核编辑，确认后再进入下一步\n"
-            "3. 需要 LLM 功能时提供 API Key（OpenAI / Anthropic），或使用 Ollama 本地推理"
+            "3. 需要 LLM 功能时提供 API Key（OpenAI / Anthropic），或使用 Ollama 本地推理\n"
+            "4. 使用**工具箱**可独立进行：ICR 信度计算、多 LLM 共识编码、自动生成方法论段落"
         ),
     },
     "landing.examples": {
@@ -90,14 +108,20 @@ _T = {
             "`examples/sentiment_example.csv` (sentiment classification \u00b7 QuantiKit) \u00b7 "
             "`examples/policy_example.csv` (policy instrument classification \u00b7 QuantiKit) \u00b7 "
             "`examples/interview_example.txt` (single interview \u00b7 QualiKit) \u00b7 "
-            "`examples/interview_focus_group.txt` (focus group \u00b7 QualiKit)"
+            "`examples/interview_focus_group.txt` (focus group \u00b7 QualiKit) \u00b7 "
+            "`examples/icr_example.csv` (inter-coder reliability \u00b7 Toolbox) \u00b7 "
+            "`examples/consensus_example.csv` (consensus coding \u00b7 Toolbox) \u00b7 "
+            "`examples/methods_log_quantikit.json` / `methods_log_qualikit.json` (methods generator \u00b7 Toolbox)"
         ),
         "zh": (
             "**示例数据：**\n"
             "`examples/sentiment_example.csv`（情感分类 \u00b7 QuantiKit）\u00b7 "
             "`examples/policy_example.csv`（政策工具分类 \u00b7 QuantiKit）\u00b7 "
             "`examples/interview_example.txt`（单人访谈 \u00b7 QualiKit）\u00b7 "
-            "`examples/interview_focus_group.txt`（焦点小组 \u00b7 QualiKit）"
+            "`examples/interview_focus_group.txt`（焦点小组 \u00b7 QualiKit）\u00b7 "
+            "`examples/icr_example.csv`（编码者间信度 \u00b7 工具箱）\u00b7 "
+            "`examples/consensus_example.csv`（共识编码 \u00b7 工具箱）\u00b7 "
+            "`examples/methods_log_quantikit.json` / `methods_log_qualikit.json`（方法论生成 \u00b7 工具箱）"
         ),
     },
     "landing.references": {
@@ -1430,5 +1454,280 @@ _T = {
     "common.api_key": {
         "en": "API Key",
         "zh": "API Key",
+    },
+
+    # ======================================================================
+    # Inter-Coder Reliability (ICR)
+    # ======================================================================
+
+    "icr.title": {
+        "en": "Inter-Coder Reliability",
+        "zh": "编码者间信度",
+    },
+    "icr.description": {
+        "en": "Compute agreement metrics between two sets of labels or coders.",
+        "zh": "计算两组标签或编码者之间的一致性指标。",
+    },
+    "icr.upload_second_labels": {
+        "en": "Upload second coder's labels (CSV)",
+        "zh": "上传第二编码者标签（CSV）",
+    },
+    "icr.second_label_col": {
+        "en": "Second coder label column",
+        "zh": "第二编码者标签列名",
+    },
+    "icr.compute_btn": {
+        "en": "Compute ICR",
+        "zh": "计算编码者间信度",
+    },
+    "icr.report": {
+        "en": "ICR Report",
+        "zh": "信度报告",
+    },
+    "icr.human_vs_llm": {
+        "en": "Human vs LLM Agreement",
+        "zh": "人工 vs LLM 一致性",
+    },
+    "icr.human_vs_llm_desc": {
+        "en": "Compare human-reviewed themes against original LLM coding.",
+        "zh": "对比人工审核主题与原始 LLM 编码结果。",
+    },
+    "icr.compute_human_llm_btn": {
+        "en": "Compute Human vs LLM ICR",
+        "zh": "计算人工 vs LLM 信度",
+    },
+    "msg.run_eval_first": {
+        "en": "Please run evaluation first.",
+        "zh": "请先运行评估。",
+    },
+    "msg.no_review_data": {
+        "en": "No review data available. Please complete coding and review first.",
+        "zh": "暂无审核数据，请先完成编码和审核。",
+    },
+
+    # ======================================================================
+    # Multi-LLM Consensus Coding
+    # ======================================================================
+
+    "consensus.title": {
+        "en": "Consensus Coding (Multi-LLM)",
+        "zh": "共识编码（多模型）",
+    },
+    "consensus.description": {
+        "en": (
+            "Run 2–3 LLMs independently on the same segments. "
+            "Themes are retained only when a majority of models agree."
+        ),
+        "zh": (
+            "使用 2–3 个 LLM 分别独立编码同一批文本，"
+            "仅保留多数模型一致同意的主题。"
+        ),
+    },
+    "consensus.backend_n": {
+        "en": "LLM {} Backend",
+        "zh": "LLM {} 后端",
+    },
+    "consensus.model_n": {
+        "en": "Model {}",
+        "zh": "模型 {}",
+    },
+    "consensus.api_key_n": {
+        "en": "API Key {}",
+        "zh": "API Key {}",
+    },
+    "consensus.run_btn": {
+        "en": "Run Consensus Coding",
+        "zh": "运行共识编码",
+    },
+    "consensus.summary": {
+        "en": "Consensus Summary",
+        "zh": "共识摘要",
+    },
+    "consensus.results": {
+        "en": "Consensus Results",
+        "zh": "共识结果",
+    },
+    "consensus.agreement": {
+        "en": "Agreement Report",
+        "zh": "一致性报告",
+    },
+    "msg.at_least_two_llms": {
+        "en": "Please configure at least 2 LLMs for consensus coding.",
+        "zh": "共识编码需要至少配置 2 个 LLM。",
+    },
+    "msg.consensus_done": {
+        "en": "Consensus coding complete. {} segments coded with {} models.",
+        "zh": "共识编码完成。{} 条文本使用 {} 个模型编码。",
+    },
+    "msg.lock_themes_first": {
+        "en": "Please define and lock themes first.",
+        "zh": "请先定义并锁定主题框架。",
+    },
+
+    # ======================================================================
+    # Methods Section Auto-generation
+    # ======================================================================
+
+    "methods.title": {
+        "en": "Methods Section Generator",
+        "zh": "方法论段落生成",
+    },
+    "methods.description": {
+        "en": "Generate a Methods paragraph draft for your paper based on the analysis pipeline.",
+        "zh": "根据分析流程自动生成论文方法论段落草稿。",
+    },
+    "methods.generate_btn": {
+        "en": "Generate Methods Section",
+        "zh": "生成方法论段落",
+    },
+    "methods.text_en": {
+        "en": "Methods (English)",
+        "zh": "方法论（英文）",
+    },
+    "methods.text_zh": {
+        "en": "Methods (Chinese)",
+        "zh": "方法论（中文）",
+    },
+    "methods.copy_hint": {
+        "en": "Auto-generated draft. Copy, edit, and cite appropriately before publication.",
+        "zh": "自动生成草稿，请复制后编辑，并在发表前适当引用。",
+    },
+    "methods.no_data": {
+        "en": "Please complete the analysis pipeline before generating.",
+        "zh": "请先完成分析流程再生成。",
+    },
+
+    # ======================================================================
+    # Toolbox
+    # ======================================================================
+
+    "toolbox.title": {
+        "en": "Toolbox",
+        "zh": "工具箱",
+    },
+    "toolbox.description": {
+        "en": "Standalone research tools — ICR Calculator, Multi-LLM Consensus Coding, and Methods Section Generator. These tools work independently from QuantiKit and QualiKit.",
+        "zh": "独立研究工具 — 编码者间信度计算、多模型共识编码、方法论段落生成。这些工具独立于 QuantiKit 和 QualiKit 使用。",
+    },
+    "toolbox.icr_tab": {
+        "en": "ICR Calculator",
+        "zh": "编码者间信度",
+    },
+    "toolbox.consensus_tab": {
+        "en": "Consensus Coding",
+        "zh": "共识编码",
+    },
+    "toolbox.methods_tab": {
+        "en": "Methods Generator",
+        "zh": "方法论生成",
+    },
+    "toolbox.import_log": {
+        "en": "Import Pipeline Log",
+        "zh": "导入流水线日志",
+    },
+    "toolbox.export_log": {
+        "en": "Export Pipeline Log",
+        "zh": "导出流水线日志",
+    },
+    "toolbox.manual_input": {
+        "en": "Manual Input (without log file)",
+        "zh": "手动输入（无日志文件时使用）",
+    },
+    "toolbox.pipeline_type": {
+        "en": "Pipeline Type",
+        "zh": "流水线类型",
+    },
+    "toolbox.icr_upload": {
+        "en": "Upload Labels CSV (each column = one coder)",
+        "zh": "上传标签 CSV（每列代表一个编码者）",
+    },
+    "toolbox.icr_file_info": {
+        "en": "File info",
+        "zh": "文件信息",
+    },
+    "toolbox.icr_select_cols": {
+        "en": "Select coder columns",
+        "zh": "选择编码者列",
+    },
+    "toolbox.icr_select_cols_info": {
+        "en": "Pick 2+ columns. 2 coders → Cohen's Kappa; 3+ coders → Krippendorff's Alpha.",
+        "zh": "选择 2 列以上。2 人 → Cohen's Kappa；3 人以上 → Krippendorff's Alpha。",
+    },
+    "toolbox.icr_mode": {
+        "en": "Label Mode",
+        "zh": "标签模式",
+    },
+    "toolbox.icr_mode_info": {
+        "en": "single-label: one label per cell. multi-label: comma-separated values per cell.",
+        "zh": "单标签：每格一个标签。多标签：每格用逗号分隔多个标签。",
+    },
+    "toolbox.add_llm": {
+        "en": "+ Add LLM",
+        "zh": "+ 添加模型",
+    },
+    "toolbox.remove_llm": {
+        "en": "- Remove LLM",
+        "zh": "- 移除模型",
+    },
+    "toolbox.data_file": {
+        "en": "Data File (CSV)",
+        "zh": "数据文件（CSV）",
+    },
+    "toolbox.text_col": {
+        "en": "Text Column",
+        "zh": "文本列名",
+    },
+    "toolbox.themes_input": {
+        "en": "Themes (one per line, format: name: description)",
+        "zh": "主题（每行一个，格式：名称: 描述）",
+    },
+    "toolbox.download_example": {
+        "en": "Download Example",
+        "zh": "下载示例",
+    },
+    "toolbox.example_file": {
+        "en": "Example File",
+        "zh": "示例文件",
+    },
+    "toolbox.example_qt_log": {
+        "en": "QuantiKit Log Example",
+        "zh": "QuantiKit 日志示例",
+    },
+    "toolbox.example_ql_log": {
+        "en": "QualiKit Log Example",
+        "zh": "QualiKit 日志示例",
+    },
+
+    # ======================================================================
+    # Project Save / Load
+    # ======================================================================
+
+    "project.save_title": {
+        "en": "Save Project",
+        "zh": "保存项目",
+    },
+    "project.save_btn": {
+        "en": "Save Project File",
+        "zh": "保存项目文件",
+    },
+    "project.load_title": {
+        "en": "Load Saved Project",
+        "zh": "加载已保存的项目",
+    },
+    "project.load_desc": {
+        "en": "Upload a previously saved `.json` project file to restore your progress.",
+        "zh": "上传之前保存的 `.json` 项目文件以恢复进度。",
+    },
+    "project.load_btn": {
+        "en": "Load Project",
+        "zh": "加载项目",
+    },
+    "project.file": {
+        "en": "Project File",
+        "zh": "项目文件",
+    },
+    "project.status": {
+        "en": "Status",
+        "zh": "状态",
     },
 }

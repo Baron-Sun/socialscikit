@@ -216,5 +216,6 @@ class ExtractionReviewer:
                 "paragraph_index": pos.paragraph_index if pos else 0,
                 "review_status": item.action.value,
                 "reasoning": item.result.reasoning,
+                "evidence_span": getattr(item.result, "evidence_span", ""),
             })
         return pd.DataFrame(rows) if rows else pd.DataFrame()

@@ -44,6 +44,7 @@ class CodingResult:
     themes: list[str] = field(default_factory=list)
     confidences: dict[str, float] = field(default_factory=dict)
     trigger_words: dict[str, list[str]] = field(default_factory=dict)
+    evidence_spans: dict[str, str] = field(default_factory=dict)
     reasoning: str = ""
 
     @property
@@ -103,12 +104,13 @@ _CODING_PROMPT = """\
 Assign relevant themes to this text. For each theme:
 1. Confidence (0.0-1.0): how certain you are this theme applies
 2. Trigger words: specific words/phrases from the text that support this coding
-3. Brief reasoning
+3. Evidence span: copy the exact phrase or sentence from the text that most directly supports this coding (verbatim, do not paraphrase)
+4. Brief reasoning
 
 If NO themes apply, return an empty "themes" array.
 
 Return ONLY valid JSON (no markdown fencing):
-{{"themes": [{{"name": "theme_name", "confidence": 0.85, "trigger_words": ["word1", "word2"], "reasoning": "brief reason"}}]}}"""
+{{"themes": [{{"name": "theme_name", "confidence": 0.85, "trigger_words": ["word1", "word2"], "evidence_span": "exact quote from text", "reasoning": "brief reason"}}]}}"""
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +255,7 @@ class Coder:
         assigned_themes = []
         confidences = {}
         trigger_words = {}
+        evidence_spans = {}
         reasoning_parts = []
 
         raw_themes = parsed.get("themes", [])
@@ -271,9 +274,13 @@ class Coder:
             triggers = item.get("trigger_words", [])
             reason = item.get("reasoning", "")
 
+            evidence = str(item.get("evidence_span", "")).strip()
+
             assigned_themes.append(matched)
             confidences[matched] = round(conf, 3)
             trigger_words[matched] = triggers if isinstance(triggers, list) else []
+            if evidence:
+                evidence_spans[matched] = evidence
             if reason:
                 reasoning_parts.append(f"{matched}: {reason}")
 
@@ -283,6 +290,7 @@ class Coder:
             themes=assigned_themes,
             confidences=confidences,
             trigger_words=trigger_words,
+            evidence_spans=evidence_spans,
             reasoning="; ".join(reasoning_parts),
         )
 
