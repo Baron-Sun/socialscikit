@@ -1,0 +1,21 @@
+{
+  "pipeline": "qualikit",
+  "n_segments": 86,
+  "n_themes": 5,
+  "theme_names": ["医疗服务", "教育资源", "就业保障", "社区治理", "数字鸿沟"],
+  "coding_model_name": "gpt-4o-mini",
+  "coding_model_backend": "openai",
+  "deidentification_performed": true,
+  "consensus_coding_used": true,
+  "n_consensus_models": 2,
+  "consensus_model_names": ["gpt-4o-mini", "claude-sonnet-4-20250514"],
+  "consensus_agreement": 0.84,
+  "n_high_confidence": 52,
+  "n_medium_confidence": 24,
+  "n_low_confidence": 10,
+  "review_stats": {
+    "accepted": 68,
+    "rejected": 5,
+    "edited": 13
+  }
+}

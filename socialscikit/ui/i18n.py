@@ -23,8 +23,8 @@ _T = {
         "zh": "# SocialSciKit",
     },
     "landing.subtitle": {
-        "en": "Zero-code text analysis toolkit for social science researchers",
-        "zh": "面向社会科学研究者的零代码文本分析工具",
+        "en": "Zero-code text analysis & research methods toolkit for social science researchers",
+        "zh": "面向社会科学研究者的零代码文本分析与研究方法工具包",
     },
     "landing.quantikit_card": {
         "en": (
@@ -70,18 +70,36 @@ _T = {
             "- 摘录表 + 共现矩阵 + 分析备忘录\n"
         ),
     },
+    "landing.toolbox_card": {
+        "en": (
+            "### Toolbox — Research Methods Tools\n\n"
+            "**Standalone tools** that work independently or together with QuantiKit / QualiKit:\n\n"
+            "- **ICR Calculator** — Inter-coder reliability (Cohen's Kappa, Krippendorff's Alpha, multi-label Jaccard); supports 2+ coders with auto metric selection\n"
+            "- **Consensus Coding** — Multi-LLM majority-vote coding with 2\u20135 configurable LLM backends\n"
+            "- **Methods Generator** — Auto-generate methods section paragraphs (EN/ZH) from pipeline logs or manual input\n"
+        ),
+        "zh": (
+            "### 工具箱 — 研究方法工具\n\n"
+            "**独立工具**，可单独使用或与 QuantiKit / QualiKit 搭配：\n\n"
+            "- **ICR 计算器** — 编码者间信度（Cohen's Kappa、Krippendorff's Alpha、多标签 Jaccard）；支持 2+ 编码者自动选择指标\n"
+            "- **共识编码** — 多 LLM 多数投票编码，支持 2\u20135 个可配置的 LLM 后端\n"
+            "- **方法论生成器** — 从流水线日志或手动输入自动生成方法部分段落（中英双语）\n"
+        ),
+    },
     "landing.quickstart": {
         "en": (
             "### Quick Start\n\n"
-            "1. Click the **QuantiKit** or **QualiKit** tab above to enter the corresponding module\n"
+            "1. Click the **QuantiKit**, **QualiKit**, or **Toolbox** tab above to enter the corresponding module\n"
             "2. Follow the numbered steps in order \u2014 results at each step can be reviewed and edited before proceeding\n"
-            "3. When LLM features are needed, provide an API Key (OpenAI / Anthropic) or use Ollama for local inference"
+            "3. When LLM features are needed, provide an API Key (OpenAI / Anthropic) or use Ollama for local inference\n"
+            "4. Use the **Toolbox** for standalone tools: ICR calculation, multi-LLM consensus coding, or auto-generating methods sections"
         ),
         "zh": (
             "### 快速开始\n\n"
-            "1. 点击上方 **QuantiKit** 或 **QualiKit** 标签页进入对应模块\n"
+            "1. 点击上方 **QuantiKit**、**QualiKit** 或 **工具箱** 标签页进入对应模块\n"
             "2. 按步骤编号依次操作 \u2014 每步结果可审核编辑，确认后再进入下一步\n"
-            "3. 需要 LLM 功能时提供 API Key（OpenAI / Anthropic），或使用 Ollama 本地推理"
+            "3. 需要 LLM 功能时提供 API Key（OpenAI / Anthropic），或使用 Ollama 本地推理\n"
+            "4. 使用**工具箱**可独立进行：ICR 信度计算、多 LLM 共识编码、自动生成方法论段落"
         ),
     },
     "landing.examples": {
@@ -90,14 +108,20 @@ _T = {
             "`examples/sentiment_example.csv` (sentiment classification \u00b7 QuantiKit) \u00b7 "
             "`examples/policy_example.csv` (policy instrument classification \u00b7 QuantiKit) \u00b7 "
             "`examples/interview_example.txt` (single interview \u00b7 QualiKit) \u00b7 "
-            "`examples/interview_focus_group.txt` (focus group \u00b7 QualiKit)"
+            "`examples/interview_focus_group.txt` (focus group \u00b7 QualiKit) \u00b7 "
+            "`examples/icr_example.csv` (inter-coder reliability \u00b7 Toolbox) \u00b7 "
+            "`examples/consensus_example.csv` (consensus coding \u00b7 Toolbox) \u00b7 "
+            "`examples/methods_log_quantikit.json` / `methods_log_qualikit.json` (methods generator \u00b7 Toolbox)"
         ),
         "zh": (
             "**示例数据：**\n"
             "`examples/sentiment_example.csv`（情感分类 \u00b7 QuantiKit）\u00b7 "
             "`examples/policy_example.csv`（政策工具分类 \u00b7 QuantiKit）\u00b7 "
             "`examples/interview_example.txt`（单人访谈 \u00b7 QualiKit）\u00b7 "
-            "`examples/interview_focus_group.txt`（焦点小组 \u00b7 QualiKit）"
+            "`examples/interview_focus_group.txt`（焦点小组 \u00b7 QualiKit）\u00b7 "
+            "`examples/icr_example.csv`（编码者间信度 \u00b7 工具箱）\u00b7 "
+            "`examples/consensus_example.csv`（共识编码 \u00b7 工具箱）\u00b7 "
+            "`examples/methods_log_quantikit.json` / `methods_log_qualikit.json`（方法论生成 \u00b7 工具箱）"
         ),
     },
     "landing.references": {
@@ -1656,5 +1680,21 @@ _T = {
     "toolbox.themes_input": {
         "en": "Themes (one per line, format: name: description)",
         "zh": "主题（每行一个，格式：名称: 描述）",
+    },
+    "toolbox.download_example": {
+        "en": "Download Example",
+        "zh": "下载示例",
+    },
+    "toolbox.example_file": {
+        "en": "Example File",
+        "zh": "示例文件",
+    },
+    "toolbox.example_qt_log": {
+        "en": "QuantiKit Log Example",
+        "zh": "QuantiKit 日志示例",
+    },
+    "toolbox.example_ql_log": {
+        "en": "QualiKit Log Example",
+        "zh": "QualiKit 日志示例",
     },
 }

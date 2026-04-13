@@ -535,12 +535,15 @@ def _build_landing(lang: str = "en") -> str:
         '<div class="hero-sub">\n\n'
         f'{t("landing.subtitle", lang)}\n\n'
         '</div>\n\n---\n\n'
-        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0;">\n'
+        '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0;">\n'
         '<div class="module-card">\n\n'
         f'{t("landing.quantikit_card", lang)}\n\n'
         '</div>\n'
         '<div class="module-card">\n\n'
         f'{t("landing.qualikit_card", lang)}\n\n'
+        '</div>\n'
+        '<div class="module-card">\n\n'
+        f'{t("landing.toolbox_card", lang)}\n\n'
         '</div>\n</div>\n\n'
         f'{t("landing.quickstart", lang)}\n\n'
         f'{t("landing.examples", lang)}\n\n'
@@ -1290,7 +1293,12 @@ def create_app() -> gr.Blocks:
             # ---------- ICR Calculator ----------
             with gr.Tab(t("toolbox.icr_tab", "en")) as tb_icr_tab:
                 tb_icr_md = gr.Markdown(t("icr.description", "en"))
-                tb_icr_file = gr.File(label=t("toolbox.icr_upload", "en"), file_types=[".csv"])
+                with gr.Row():
+                    tb_icr_file = gr.File(label=t("toolbox.icr_upload", "en"), file_types=[".csv"])
+                    with gr.Column(scale=0, min_width=160):
+                        tb_icr_ex_btn = gr.Button(t("toolbox.download_example", "en"), variant="secondary", size="sm")
+                        tb_icr_ex_file = gr.File(label=t("toolbox.example_file", "en"), visible=False)
+                        tb_icr_ex_btn.click(fn=tb._download_icr_example, outputs=[tb_icr_ex_file])
                 tb_icr_info = gr.Textbox(label=t("toolbox.icr_file_info", "en"), interactive=False, lines=1)
                 tb_icr_cols = gr.CheckboxGroup(
                     choices=[], label=t("toolbox.icr_select_cols", "en"),
@@ -1322,6 +1330,10 @@ def create_app() -> gr.Blocks:
                 with gr.Row():
                     tb_con_file = gr.File(label=t("toolbox.data_file", "en"), file_types=[".csv"])
                     tb_con_tcol = gr.Textbox(label=t("toolbox.text_col", "en"), value="text")
+                    with gr.Column(scale=0, min_width=160):
+                        tb_con_ex_btn = gr.Button(t("toolbox.download_example", "en"), variant="secondary", size="sm")
+                        tb_con_ex_file = gr.File(label=t("toolbox.example_file", "en"), visible=False)
+                        tb_con_ex_btn.click(fn=tb._download_consensus_example, outputs=[tb_con_ex_file])
                 tb_con_themes = gr.Textbox(
                     label=t("toolbox.themes_input", "en"),
                     placeholder="theme1: description\ntheme2: description\n...",
@@ -1405,10 +1417,34 @@ def create_app() -> gr.Blocks:
 
                 # Primary: import log
                 gr.Markdown(f"### {t('toolbox.import_log', 'en')}")
-                tb_meth_log = gr.File(
-                    label=t("toolbox.import_log", "en"),
-                    file_types=[".json"],
-                )
+                with gr.Row():
+                    tb_meth_log = gr.File(
+                        label=t("toolbox.import_log", "en"),
+                        file_types=[".json"],
+                    )
+                    with gr.Column(scale=0, min_width=200):
+                        tb_meth_ex_qt_btn = gr.Button(
+                            t("toolbox.example_qt_log", "en"),
+                            variant="secondary", size="sm",
+                        )
+                        tb_meth_ex_qt_file = gr.File(
+                            label=t("toolbox.example_file", "en"), visible=False,
+                        )
+                        tb_meth_ex_qt_btn.click(
+                            fn=tb._download_methods_example_qt,
+                            outputs=[tb_meth_ex_qt_file],
+                        )
+                        tb_meth_ex_ql_btn = gr.Button(
+                            t("toolbox.example_ql_log", "en"),
+                            variant="secondary", size="sm",
+                        )
+                        tb_meth_ex_ql_file = gr.File(
+                            label=t("toolbox.example_file", "en"), visible=False,
+                        )
+                        tb_meth_ex_ql_btn.click(
+                            fn=tb._download_methods_example_ql,
+                            outputs=[tb_meth_ex_ql_file],
+                        )
                 tb_meth_log_btn = gr.Button(t("methods.generate_btn", "en"), variant="primary")
 
                 tb_meth_en = gr.Textbox(label=t("methods.text_en", "en"), lines=8, interactive=True)
@@ -1709,6 +1745,7 @@ def create_app() -> gr.Blocks:
                 gr.update(label=t("toolbox.icr_mode", lang)),            # tb_icr_mode
                 gr.update(value=t("icr.compute_btn", lang)),             # tb_icr_btn
                 gr.update(label=t("icr.report", lang)),                  # tb_icr_out
+                gr.update(value=t("toolbox.download_example", lang)),    # tb_icr_ex_btn
                 t("consensus.description", lang),                        # tb_con_md
                 gr.update(label=t("toolbox.data_file", lang)),           # tb_con_file
                 gr.update(label=t("toolbox.text_col", lang)),            # tb_con_tcol
@@ -1719,11 +1756,14 @@ def create_app() -> gr.Blocks:
                 gr.update(label=t("consensus.summary", lang)),           # tb_con_summary
                 gr.update(label=t("consensus.results", lang)),           # tb_con_results
                 gr.update(label=t("consensus.agreement", lang)),         # tb_con_agreement
+                gr.update(value=t("toolbox.download_example", lang)),    # tb_con_ex_btn
                 t("methods.description", lang),                          # tb_meth_md
                 gr.update(label=t("toolbox.import_log", lang)),          # tb_meth_log
                 gr.update(value=t("methods.generate_btn", lang)),        # tb_meth_log_btn
                 gr.update(label=t("methods.text_en", lang)),             # tb_meth_en
                 gr.update(label=t("methods.text_zh", lang)),             # tb_meth_zh
+                gr.update(value=t("toolbox.example_qt_log", lang)),     # tb_meth_ex_qt_btn
+                gr.update(value=t("toolbox.example_ql_log", lang)),     # tb_meth_ex_ql_btn
             ]
 
         _lang_outputs = [
@@ -1792,10 +1832,13 @@ def create_app() -> gr.Blocks:
             tb_intro_md,
             tb_icr_md, tb_icr_file, tb_icr_cols,
             tb_icr_mode, tb_icr_btn, tb_icr_out,
+            tb_icr_ex_btn,
             tb_con_md, tb_con_file, tb_con_tcol, tb_con_themes,
             tb_con_add, tb_con_rm,
             tb_con_btn, tb_con_summary, tb_con_results, tb_con_agreement,
+            tb_con_ex_btn,
             tb_meth_md, tb_meth_log, tb_meth_log_btn, tb_meth_en, tb_meth_zh,
+            tb_meth_ex_qt_btn, tb_meth_ex_ql_btn,
         ]
 
         lang_selector.change(
