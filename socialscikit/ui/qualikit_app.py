@@ -794,7 +794,41 @@ def _ext_show_context(session, index, raw_text):
     }
     status = status_map.get(item.action.value, item.action.value)
 
-    # --- Part 1: full segment text ---
+    # --- Part 1: full segment text (with evidence highlighting if available) ---
+    seg_text = item.result.text
+    evidence = getattr(item.result, "evidence_span", "")
+
+    # Build segment body — highlight evidence span inline if found
+    if evidence:
+        ev_lower = evidence.lower()
+        seg_lower = seg_text.lower()
+        ev_idx = seg_lower.find(ev_lower)
+        if ev_idx >= 0:
+            before = esc(seg_text[:ev_idx])
+            match_text = esc(seg_text[ev_idx:ev_idx + len(evidence)])
+            after = esc(seg_text[ev_idx + len(evidence):])
+            seg_body = (
+                f'{before}'
+                '<mark style="background:#D4EDDA;padding:2px 0;'
+                'border-bottom:2px solid #28a745;">'
+                f'{match_text}</mark>'
+                f'{after}'
+            )
+        else:
+            # Evidence not found verbatim — show segment + evidence block
+            seg_body = esc(seg_text)
+    else:
+        seg_body = esc(seg_text)
+
+    # Evidence block shown below segment text when present
+    evidence_html = ""
+    if evidence:
+        evidence_html = (
+            '<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:#f0f9f4;'
+            'border-left:3px solid #28a745;font-size:0.85rem;color:#333;">'
+            f'<strong>Evidence:</strong> \u201c{esc(evidence)}\u201d</div>'
+        )
+
     full_text_html = (
         '<div style="font-family:Inter,sans-serif;padding:1rem;background:#fff;'
         'border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.75rem;">'
@@ -807,7 +841,8 @@ def _ext_show_context(session, index, raw_text):
         '</div>'
         f'<div style="white-space:pre-wrap;line-height:1.8;font-size:0.92rem;'
         f'color:#333;background:#fafafa;padding:0.75rem;border-radius:4px;">'
-        f'{esc(item.result.text)}</div>'
+        f'{seg_body}</div>'
+        f'{evidence_html}'
         f'<div style="margin-top:0.5rem;font-size:0.85rem;color:#666;">'
         f'判断依据：{esc(item.result.reasoning)}</div>'
         '</div>'
