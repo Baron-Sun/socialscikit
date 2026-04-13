@@ -1697,4 +1697,37 @@ _T = {
         "en": "QualiKit Log Example",
         "zh": "QualiKit 日志示例",
     },
+
+    # ======================================================================
+    # Project Save / Load
+    # ======================================================================
+
+    "project.save_title": {
+        "en": "Save Project",
+        "zh": "保存项目",
+    },
+    "project.save_btn": {
+        "en": "Save Project File",
+        "zh": "保存项目文件",
+    },
+    "project.load_title": {
+        "en": "Load Saved Project",
+        "zh": "加载已保存的项目",
+    },
+    "project.load_desc": {
+        "en": "Upload a previously saved `.json` project file to restore your progress.",
+        "zh": "上传之前保存的 `.json` 项目文件以恢复进度。",
+    },
+    "project.load_btn": {
+        "en": "Load Project",
+        "zh": "加载项目",
+    },
+    "project.file": {
+        "en": "Project File",
+        "zh": "项目文件",
+    },
+    "project.status": {
+        "en": "Status",
+        "zh": "状态",
+    },
 }

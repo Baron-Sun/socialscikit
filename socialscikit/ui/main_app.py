@@ -14,6 +14,7 @@ import gradio as gr
 import pandas as pd
 
 from socialscikit.core.data_loader import get_template_path
+from socialscikit.core.project_io import save_project, load_project
 from socialscikit.quantikit.feature_extractor import TASK_TYPES
 
 import socialscikit.ui.quantikit_app as qn
@@ -651,6 +652,23 @@ def create_app() -> gr.Blocks:
         with gr.Tab("Home"):
             landing_md = gr.Markdown(value=_build_landing("en"))
 
+            with gr.Accordion(t("project.load_title", "en"), open=False):
+                gr.Markdown(t("project.load_desc", "en"))
+                with gr.Row():
+                    proj_load_file = gr.File(
+                        label=t("project.file", "en"),
+                        file_types=[".json"],
+                    )
+                    with gr.Column(scale=0, min_width=160):
+                        proj_load_btn = gr.Button(
+                            t("project.load_btn", "en"),
+                            variant="primary", size="sm",
+                        )
+                proj_load_msg = gr.Textbox(
+                    label=t("project.status", "en"),
+                    interactive=False, lines=1,
+                )
+
         # ==================================================================
         # QuantiKit
         # ==================================================================
@@ -929,6 +947,12 @@ def create_app() -> gr.Blocks:
                                  inputs=[qt_result_df, qt_df, qt_lcol],
                                  outputs=[qt_log_file])
 
+                with gr.Accordion(t("project.save_title", "en"), open=False):
+                    proj_qt_save_btn = gr.Button(
+                        t("project.save_btn", "en"), variant="secondary",
+                    )
+                    proj_qt_save_file = gr.File(label=t("project.file", "en"))
+
         # ==================================================================
         # QualiKit
         # ==================================================================
@@ -1205,6 +1229,12 @@ def create_app() -> gr.Blocks:
                     outputs=[ql_log_file],
                 )
 
+                with gr.Accordion(t("project.save_title", "en"), open=False):
+                    proj_ql_save_btn = gr.Button(
+                        t("project.save_btn", "en"), variant="secondary",
+                    )
+                    proj_ql_save_file = gr.File(label=t("project.file", "en"))
+
             # ==========================================================
             # Cross-tab event wiring
             # (placed here so all components are defined)
@@ -1282,6 +1312,64 @@ def create_app() -> gr.Blocks:
                 inputs=[ql_ext_session, ql_man_seg, ql_man_rq, ql_man_sub],
                 outputs=_rev_out,
             )
+
+        # ==================================================================
+        # Project Save / Load wiring
+        # ==================================================================
+
+        _project_state_inputs = [
+            qt_df, qt_result_df, qt_ann_session,
+            ql_raw_text, ql_segments, ql_rqs, ql_ext_session,
+            ql_lang,
+        ]
+        _project_state_keys = [
+            "qt_df", "qt_result_df", "qt_ann_session",
+            "ql_raw_text", "ql_segments", "ql_rqs", "ql_ext_session",
+            "ql_lang",
+        ]
+
+        def _save_project_fn(*state_values):
+            states = dict(zip(_project_state_keys, state_values))
+            json_str = save_project(states)
+            path = os.path.join(tempfile.gettempdir(), "socialscikit_project.json")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(json_str)
+            return path
+
+        # Load returns all state objects + a status message
+        _load_outputs = _project_state_inputs + [proj_load_msg]
+
+        def _load_project_fn(file):
+            n_states = len(_project_state_keys)
+            if file is None:
+                return [gr.update()] * n_states + ["Please upload a project file."]
+            try:
+                with open(file, "r", encoding="utf-8") as f:
+                    json_str = f.read()
+                states = load_project(json_str)
+                results = []
+                for key in _project_state_keys:
+                    results.append(states.get(key))
+                results.append("Project loaded successfully!")
+                return results
+            except Exception as e:
+                return [gr.update()] * n_states + [f"Load failed: {e}"]
+
+        proj_qt_save_btn.click(
+            fn=_save_project_fn,
+            inputs=_project_state_inputs,
+            outputs=[proj_qt_save_file],
+        )
+        proj_ql_save_btn.click(
+            fn=_save_project_fn,
+            inputs=_project_state_inputs,
+            outputs=[proj_ql_save_file],
+        )
+        proj_load_btn.click(
+            fn=_load_project_fn,
+            inputs=[proj_load_file],
+            outputs=_load_outputs,
+        )
 
         # ==================================================================
         # Toolbox
@@ -1521,6 +1609,12 @@ def create_app() -> gr.Blocks:
                 lang,
                 # Landing page
                 _build_landing(lang),
+                # Project Load UI (on Home tab)
+                gr.update(value=t("project.load_btn", lang)),        # proj_load_btn
+                gr.update(label=t("project.status", lang)),          # proj_load_msg
+                # Project Save buttons
+                gr.update(value=t("project.save_btn", lang)),        # proj_qt_save_btn
+                gr.update(value=t("project.save_btn", lang)),        # proj_ql_save_btn
                 # -- QualiKit Step 1 --
                 t("ql.s1.title", lang),                                  # ql_s1_md
                 gr.update(label=t("ql.s1.upload", lang)),                # ql_file
@@ -1771,6 +1865,9 @@ def create_app() -> gr.Blocks:
             ql_lang,
             # Landing
             landing_md,
+            # Project UI
+            proj_load_btn, proj_load_msg,
+            proj_qt_save_btn, proj_ql_save_btn,
             # Step 1
             ql_s1_md, ql_file, ql_tpl_btn, ql_tpl_file,
             ql_text_preview, ql_s1_seg_md, ql_seg_mode, ql_seg_cw,
