@@ -410,16 +410,35 @@ footer { display: none !important; }
 .hero-title h1 { font-size: 2rem !important; color: #222 !important; margin-bottom: 0.25rem !important; }
 .hero-sub { text-align: center; color: #888 !important; font-size: 1rem !important; margin-bottom: 2rem; }
 
-/* ---- Module cards — just a subtle bg, no border ---- */
+/* ---- Module cards — subtle bg with colored left border ---- */
 .module-card {
     border: none !important;
     border-radius: 8px;
     padding: 1.5rem;
     background: #f7f7f8;
+    border-left: 4px solid #4A90D9;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.module-card:nth-child(2) { border-left-color: #5BA88D; }
+.module-card:nth-child(3) { border-left-color: #E8734A; }
+.module-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
 }
 .module-card h3 { margin-top: 0 !important; color: #222 !important; }
 .module-card strong { color: #222 !important; }
 .module-card p, .module-card li { color: #444 !important; }
+
+/* ---- Plot containers — clean borders ---- */
+.plot-container {
+    border: 1px solid #f0f0f0 !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+/* Ensure plots render on white background */
+.plot-container img, .plot-container canvas {
+    background: #ffffff !important;
+}
 """
 
 # ---------------------------------------------------------------------------
@@ -737,7 +756,9 @@ def create_app() -> gr.Blocks:
                     qa_labels = gr.Textbox(label=t("qt.s3.labels", "en"), value="positive, negative, neutral", placeholder=t("qt.s3.labels_placeholder", "en"))
                     qa_shuf = gr.Checkbox(label=t("qt.s3.shuffle", "en"), value=False)
                 qa_create = gr.Button(t("qt.s3.create_session", "en"), variant="primary")
-                qa_stats = gr.Textbox(label=t("qt.s3.progress", "en"), interactive=False)
+                with gr.Row():
+                    qa_stats = gr.Textbox(label=t("qt.s3.progress", "en"), interactive=False, scale=3)
+                    qa_ann_plot = gr.Plot(label="", scale=1, min_width=180)
                 qa_idx = gr.Textbox(label=t("qt.s3.current_pos", "en"), interactive=False)
                 qa_text = gr.Textbox(label=t("qt.s3.text_to_annotate", "en"), lines=4, interactive=False)
                 with gr.Row():
@@ -763,12 +784,18 @@ def create_app() -> gr.Blocks:
                     qa_mmsg = gr.Textbox(label="", interactive=False, show_label=False)
 
                 _so = [qt_ann_session, qa_stats, qa_text, qa_idx, qa_msg]
+                _ann_chart_then = dict(fn=qn._make_annotation_chart, inputs=[qt_ann_session], outputs=[qa_ann_plot])
                 qa_create.click(fn=qn._create_annotation_session,
-                                inputs=[qt_df, qt_tcol, qt_lcol, qa_labels, qa_shuf], outputs=_so)
-                qa_sub.click(fn=qn._annotate_item, inputs=[qt_ann_session, qa_input], outputs=_so)
-                qa_skip.click(fn=qn._skip_item, inputs=[qt_ann_session], outputs=_so)
-                qa_flag.click(fn=qn._flag_item, inputs=[qt_ann_session, qa_fnote], outputs=_so)
-                qa_undo.click(fn=qn._undo_annotation, inputs=[qt_ann_session], outputs=_so)
+                                inputs=[qt_df, qt_tcol, qt_lcol, qa_labels, qa_shuf], outputs=_so
+                ).then(**_ann_chart_then)
+                qa_sub.click(fn=qn._annotate_item, inputs=[qt_ann_session, qa_input], outputs=_so
+                ).then(**_ann_chart_then)
+                qa_skip.click(fn=qn._skip_item, inputs=[qt_ann_session], outputs=_so
+                ).then(**_ann_chart_then)
+                qa_flag.click(fn=qn._flag_item, inputs=[qt_ann_session, qa_fnote], outputs=_so
+                ).then(**_ann_chart_then)
+                qa_undo.click(fn=qn._undo_annotation, inputs=[qt_ann_session], outputs=_so
+                ).then(**_ann_chart_then)
                 qa_exp.click(fn=qn._export_annotations, inputs=[qt_ann_session, qa_all], outputs=[qa_tbl, qa_msg])
                 qa_dl.click(fn=qn._download_annotations_csv, inputs=[qt_ann_session, qa_all], outputs=[qa_dlf])
                 qa_merge.click(fn=qn._update_main_df_from_annotations,
@@ -930,9 +957,14 @@ def create_app() -> gr.Blocks:
             with gr.Tab("Step 5 · Evaluation"):
                 qt_s5_md = gr.Markdown(t("qt.s5.title", "en"))
                 qt_ebtn = gr.Button(t("qt.s5.run_btn", "en"), variant="primary")
-                qt_eout = gr.Textbox(label=t("qt.s5.report", "en"), lines=18, interactive=False)
+                qt_metrics_html = gr.HTML()
+                with gr.Row():
+                    qt_cm_plot = gr.Plot(label=t("qt.s5.confusion_matrix", "en"))
+                    qt_pc_plot = gr.Plot(label=t("qt.s5.per_class", "en"))
+                with gr.Accordion(t("qt.s5.text_report", "en"), open=False):
+                    qt_eout = gr.Textbox(label=t("qt.s5.report", "en"), lines=18, interactive=False)
                 qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol],
-                              outputs=[qt_eout])
+                              outputs=[qt_eout, qt_metrics_html, qt_cm_plot, qt_pc_plot])
 
             # -- 6. Export ------------------------------------------------
             with gr.Tab("Step 6 · Export"):
@@ -1178,6 +1210,13 @@ def create_app() -> gr.Blocks:
                 ql_rev_stats = gr.Textbox(label=t("ql.s5.stats", "en"), interactive=False)
                 ql_rev_tbl = gr.Dataframe(label=t("ql.s5.table", "en"), interactive=False)
 
+                with gr.Accordion(t("ql.s5.charts_title", "en"), open=True):
+                    ql_rev_cards = gr.HTML()
+                    with gr.Row():
+                        ql_review_plot = gr.Plot(label=t("ql.s5.review_progress", "en"))
+                        ql_conf_plot = gr.Plot(label=t("ql.s5.confidence", "en"))
+                        ql_theme_plot = gr.Plot(label=t("ql.s5.themes", "en"))
+
                 ql_s5_detail_md = gr.Markdown("---\n" + t("ql.s5.detail_title", "en"))
                 with gr.Row():
                     ql_rev_idx = gr.Number(label=t("ql.s5.index", "en"), precision=0, value=0, minimum=0)
@@ -1248,12 +1287,18 @@ def create_app() -> gr.Blocks:
             )
 
             # Step 4 → extraction outputs to Step 5 review table
+            _ql_chart_out = [ql_rev_cards, ql_review_plot, ql_conf_plot, ql_theme_plot]
+
             ql_ext_btn.click(
                 fn=ql._run_extraction_v2,
                 inputs=[ql_raw_text, ql_segments, ql_rqs,
                         ql_ext_be, ql_ext_mod, ql_ext_key],
                 outputs=[ql_ext_session, ql_ext_msg, ql_ext_tbl,
                          ql_rev_tbl, ql_rev_stats],
+            ).then(
+                fn=ql._make_ql_charts,
+                inputs=[ql_ext_session],
+                outputs=_ql_chart_out,
             )
 
             # Step 5 — review events
@@ -1271,6 +1316,10 @@ def create_app() -> gr.Blocks:
                 fn=ql._ext_show_context,
                 inputs=[ql_ext_session, ql_rev_idx, ql_raw_text],
                 outputs=[ql_rev_ctx],
+            ).then(
+                fn=ql._make_ql_charts,
+                inputs=[ql_ext_session],
+                outputs=_ql_chart_out,
             )
             ql_rev_rej.click(
                 fn=ql._ext_reject, inputs=[ql_ext_session, ql_rev_idx],
@@ -1279,6 +1328,10 @@ def create_app() -> gr.Blocks:
                 fn=ql._ext_show_context,
                 inputs=[ql_ext_session, ql_rev_idx, ql_raw_text],
                 outputs=[ql_rev_ctx],
+            ).then(
+                fn=ql._make_ql_charts,
+                inputs=[ql_ext_session],
+                outputs=_ql_chart_out,
             )
             ql_rev_edit_btn.click(
                 fn=ql._ext_edit,
@@ -1288,11 +1341,19 @@ def create_app() -> gr.Blocks:
                 fn=ql._ext_show_context,
                 inputs=[ql_ext_session, ql_rev_idx, ql_raw_text],
                 outputs=[ql_rev_ctx],
+            ).then(
+                fn=ql._make_ql_charts,
+                inputs=[ql_ext_session],
+                outputs=_ql_chart_out,
             )
             ql_rev_bulk.click(
                 fn=ql._ext_accept_all_high,
                 inputs=[ql_ext_session, ql_rev_thr],
                 outputs=_rev_out,
+            ).then(
+                fn=ql._make_ql_charts,
+                inputs=[ql_ext_session],
+                outputs=_ql_chart_out,
             )
 
             # Manual add — segment preview on ID change
@@ -1399,7 +1460,9 @@ def create_app() -> gr.Blocks:
                     info=t("toolbox.icr_mode_info", "en"),
                 )
                 tb_icr_btn = gr.Button(t("icr.compute_btn", "en"), variant="primary")
-                tb_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=18, interactive=False)
+                with gr.Row():
+                    tb_icr_out = gr.Textbox(label=t("icr.report", "en"), lines=18, interactive=False, scale=2)
+                    tb_icr_plot = gr.Plot(label="Agreement Chart", scale=1)
 
                 tb_icr_file.change(
                     fn=tb._icr_on_upload,
@@ -1410,6 +1473,10 @@ def create_app() -> gr.Blocks:
                     fn=tb._compute_icr,
                     inputs=[tb_icr_file, tb_icr_cols, tb_icr_mode],
                     outputs=[tb_icr_out],
+                ).then(
+                    fn=tb._make_icr_chart,
+                    inputs=[tb_icr_file, tb_icr_cols, tb_icr_mode],
+                    outputs=[tb_icr_plot],
                 )
 
             # ---------- Consensus Coding ----------
@@ -1683,6 +1750,9 @@ def create_app() -> gr.Blocks:
                 t("ql.s5.title", lang),                                  # ql_s5_md
                 gr.update(label=t("ql.s5.stats", lang)),                 # ql_rev_stats
                 gr.update(label=t("ql.s5.table", lang)),                 # ql_rev_tbl
+                gr.update(label=t("ql.s5.review_progress", lang)),       # ql_review_plot
+                gr.update(label=t("ql.s5.confidence", lang)),            # ql_conf_plot
+                gr.update(label=t("ql.s5.themes", lang)),                # ql_theme_plot
                 "---\n" + t("ql.s5.detail_title", lang),                 # ql_s5_detail_md
                 gr.update(label=t("ql.s5.index", lang)),                 # ql_rev_idx
                 gr.update(value=t("ql.s5.accept", lang)),                # ql_rev_acc
@@ -1826,6 +1896,8 @@ def create_app() -> gr.Blocks:
                 # -- QuantiKit Step 5 --
                 t("qt.s5.title", lang),                                  # qt_s5_md
                 gr.update(value=t("qt.s5.run_btn", lang)),               # qt_ebtn
+                gr.update(label=t("qt.s5.confusion_matrix", lang)),      # qt_cm_plot
+                gr.update(label=t("qt.s5.per_class", lang)),             # qt_pc_plot
                 gr.update(label=t("qt.s5.report", lang)),                # qt_eout
                 # -- QuantiKit Step 6 --
                 t("qt.s6.title", lang),                                  # qt_s6_md
@@ -1886,7 +1958,9 @@ def create_app() -> gr.Blocks:
             ql_s4_md, ql_ext_be, ql_ext_mod, ql_ext_key,
             ql_ext_btn, ql_ext_msg, ql_ext_tbl,
             # Step 5
-            ql_s5_md, ql_rev_stats, ql_rev_tbl, ql_s5_detail_md,
+            ql_s5_md, ql_rev_stats, ql_rev_tbl,
+            ql_review_plot, ql_conf_plot, ql_theme_plot,
+            ql_s5_detail_md,
             ql_rev_idx, ql_rev_acc, ql_rev_rej, ql_rev_ctx,
             ql_rev_edit_rq, ql_rev_edit_sub, ql_rev_edit_btn,
             ql_s5_bulk_md, ql_rev_thr, ql_rev_bulk,
@@ -1922,7 +1996,7 @@ def create_app() -> gr.Blocks:
             qt_s4_aft_md, qt_aft_key, qt_aft_mod, qt_aft_ep, qt_aft_sfx,
             qt_aft_btn, qt_aft_stat, qt_aft_chk, qt_aft_cnl, qt_aft_res,
             # ---- QuantiKit Step 5 ----
-            qt_s5_md, qt_ebtn, qt_eout,
+            qt_s5_md, qt_ebtn, qt_cm_plot, qt_pc_plot, qt_eout,
             # ---- QuantiKit Step 6 ----
             qt_s6_md, qt_xbtn, qt_xfile,
             # ---- Toolbox ----

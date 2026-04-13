@@ -34,6 +34,8 @@ from socialscikit.quantikit.feature_extractor import TASK_TYPES, FeatureExtracto
 from socialscikit.quantikit.method_recommender import MethodRecommender
 from socialscikit.quantikit.prompt_classifier import PromptClassifier
 from socialscikit.quantikit.prompt_optimizer import PromptOptimizer, PromptVariant
+from socialscikit.core import charts
+
 logger = logging.getLogger(__name__)
 
 
@@ -725,6 +727,22 @@ def _get_stats_text(session):
         f"已跳过：{stats.skipped} | 已标记：{stats.flagged} | "
         f"待标注：{stats.pending} | 进度：{stats.progress_pct}%"
     )
+
+
+def _make_annotation_chart(session):
+    """Generate annotation progress donut chart for the dashboard.
+
+    Returns (progress_fig,) for .then() chaining.
+    """
+    if session is None:
+        return None
+    try:
+        stats = session.stats()
+        return charts.plot_annotation_progress(
+            stats.labeled, stats.skipped, stats.flagged, stats.pending,
+        )
+    except Exception:
+        return None
 
 
 def _get_current_text(session):
@@ -1500,11 +1518,18 @@ def _cancel_api_ft_job(job_id_state, api_key):
 
 
 def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_label"):
-    """Evaluate predictions against ground truth."""
+    """Evaluate predictions against ground truth.
+
+    Returns
+    -------
+    tuple
+        (text_report, metrics_html, confusion_fig, per_class_fig)
+    """
+    _empty = ("", "", None, None)
     if result_df_state is None or df_state is None:
-        return "请先运行分类。"
+        return ("请先运行分类。", *_empty[1:])
     if not label_col or label_col not in df_state.columns:
-        return "未找到标签列，无法评估。请确认数据中包含真实标签。"
+        return ("未找到标签列，无法评估。请确认数据中包含真实标签。", *_empty[1:])
 
     true_labels = df_state[label_col].dropna().astype(str).tolist()
     pred_labels = result_df_state[pred_col].tolist()
@@ -1516,7 +1541,39 @@ def _evaluate_results(result_df_state, df_state, label_col, pred_col="predicted_
 
     evaluator = Evaluator()
     report = evaluator.evaluate(true_labels, pred_labels)
-    return Evaluator.format_report(report)
+
+    text = Evaluator.format_report(report)
+
+    # Metric summary cards
+    metrics_html = charts.format_eval_metrics_html(
+        report.accuracy, report.macro_f1, report.weighted_f1,
+        report.cohens_kappa, report.n_total, report.n_correct,
+    )
+
+    # Confusion matrix chart
+    cm_fig = None
+    if report.confusion_matrix:
+        try:
+            cm_fig = charts.plot_confusion_matrix(
+                report.confusion_matrix.labels, report.confusion_matrix.matrix,
+            )
+        except Exception as e:
+            logger.warning("Failed to plot confusion matrix: %s", e)
+
+    # Per-class metrics chart
+    pc_fig = None
+    if report.per_class:
+        try:
+            pc_data = [
+                {"label": pc.label, "precision": pc.precision,
+                 "recall": pc.recall, "f1": pc.f1, "support": pc.support}
+                for pc in report.per_class
+            ]
+            pc_fig = charts.plot_per_class_metrics(pc_data)
+        except Exception as e:
+            logger.warning("Failed to plot per-class metrics: %s", e)
+
+    return text, metrics_html, cm_fig, pc_fig
 
 
 # ---------------------------------------------------------------------------
