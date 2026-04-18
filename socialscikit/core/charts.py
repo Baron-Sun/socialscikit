@@ -102,6 +102,17 @@ def plot_confusion_matrix(
     """
     _setup_style()
     k = len(labels)
+
+    # Empty / degenerate input — return a placeholder
+    if k == 0 or not matrix:
+        fig, ax = plt.subplots(figsize=(5, 3), dpi=150)
+        fig.patch.set_facecolor("white")
+        msg = "无数据" if lang == "zh" else "No data"
+        ax.text(0.5, 0.5, msg, ha="center", va="center",
+                transform=ax.transAxes, fontsize=14, color=PALETTE["text_sec"])
+        ax.axis("off")
+        return fig
+
     arr = np.array(matrix, dtype=float)
 
     # Normalise for colour (row-wise, avoid /0)
