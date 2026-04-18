@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1440px;
+  background: linear-gradient(160deg, #f8faff 0%, #eef3fb 100%);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  padding: 70px 60px;
+  display: flex; flex-direction: column; align-items: center;
+}
+h1 { font-size: 56px; color: #1a1a2e; text-align: center; margin-bottom: 16px; font-weight: 800; }
+.sub { font-size: 26px; color: #888; text-align: center; margin-bottom: 54px; }
+
+.cards { display: flex; flex-direction: column; gap: 26px; width: 100%; }
+
+.card {
+  background: #fff; border-radius: 22px; padding: 38px 44px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.06);
+  display: flex; align-items: center; gap: 36px;
+}
+.card-icon {
+  width: 100px; height: 100px; border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.card-icon.openai { background: linear-gradient(135deg, #10a37f, #0d8c6d); }
+.card-icon.anthropic { background: linear-gradient(135deg, #d4a574, #c4956a); }
+.card-icon.ollama { background: linear-gradient(135deg, #333, #555); }
+
+.card-body { flex: 1; }
+.card-body h3 { font-size: 32px; color: #222; margin-bottom: 8px; font-weight: 700; }
+.card-body .models { font-size: 21px; color: #4A90D9; margin-bottom: 8px; font-weight: 500; font-family: "JetBrains Mono", monospace; }
+.card-body .desc { font-size: 20px; color: #888; line-height: 1.5; }
+
+.highlight-box {
+  margin-top: 44px; background: #fff; border: 2px dashed #4A90D9; border-radius: 20px;
+  padding: 34px 48px; text-align: center; width: 100%;
+}
+.highlight-box p { font-size: 26px; color: #333; line-height: 1.8; }
+.highlight-box strong { color: #4A90D9; font-family: "JetBrains Mono", monospace; }
+
+.section-div { font-size: 28px; color: #222; font-weight: 700; margin: 40px 0 20px; letter-spacing: 1px; }
+
+.modules { display: flex; gap: 18px; width: 100%; }
+.module {
+  flex: 1; background: #fff; border-radius: 16px; padding: 22px 20px;
+  border-left: 4px solid #4A90D9;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+.module.green { border-left-color: #5BA88D; }
+.module.orange { border-left-color: #E8734A; }
+.module h4 { font-size: 22px; color: #222; margin-bottom: 8px; font-weight: 700; }
+.module p { font-size: 17px; color: #666; line-height: 1.5; }
+
+.bottom-tags { display: flex; gap: 14px; margin-top: 36px; justify-content: center; flex-wrap: wrap; }
+.btag { background: rgba(74,144,217,0.08); color: #4A90D9; font-size: 20px; padding: 10px 22px; border-radius: 22px; font-weight: 500; }
+</style>
+</head>
+<body>
+  <h1>支持三大 LLM 后端</h1>
+  <div class="sub">灵活选择 · 按需切换 · 数据可控</div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon openai">AI</div>
+      <div class="card-body">
+        <h3>OpenAI</h3>
+        <div class="models">gpt-4o &middot; gpt-4o-mini &middot; gpt-4.1</div>
+        <div class="desc">最强通用能力，适合复杂分类和编码任务</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-icon anthropic">C</div>
+      <div class="card-body">
+        <h3>Anthropic</h3>
+        <div class="models">Claude Sonnet 4 &middot; Claude Haiku</div>
+        <div class="desc">长文本理解优秀，适合访谈和政策文本</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-icon ollama">O</div>
+      <div class="card-body">
+        <h3>Ollama（本地部署）</h3>
+        <div class="models">Llama 3 &middot; Mistral &middot; Qwen 2.5</div>
+        <div class="desc">本地运行 · 无需 API Key · 完全免费</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <p>数据敏感？用 <strong>Ollama</strong> 本地跑，数据不出机器<br>一行命令：<strong>ollama pull llama3</strong></p>
+  </div>
+
+  <div class="bottom-tags">
+    <span class="btag">分类</span>
+    <span class="btag">编码</span>
+    <span class="btag">Prompt 优化</span>
+    <span class="btag">子主题建议</span>
+    <span class="btag">共识编码</span>
+    <span class="btag">Fine-tuning</span>
+  </div>
+</body>
+</html>

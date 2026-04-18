@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1440px;
+  background: linear-gradient(160deg, #f8faff 0%, #eef3fb 100%);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  padding: 60px 60px;
+  display: flex; flex-direction: column;
+}
+h1 { font-size: 52px; color: #2e7d5b; text-align: center; margin-bottom: 6px; font-weight: 800; }
+.sub { font-size: 22px; color: #999; text-align: center; margin-bottom: 36px; }
+
+.pipeline { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+
+.step {
+  background: #fff; border-radius: 16px; padding: 22px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  border-left: 5px solid #2e7d5b;
+  display: flex; align-items: flex-start; gap: 20px;
+}
+.step-num {
+  background: #2e7d5b; color: #fff; width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+}
+.step-body { flex: 1; }
+.step-body h3 { font-size: 24px; color: #222; margin-bottom: 5px; font-weight: 700; }
+.step-body p { font-size: 18px; color: #777; line-height: 1.5; }
+.step-body .highlight { color: #2e7d5b; font-weight: 600; }
+.step-body .badge-new { display: inline-block; background: #E8734A; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; font-weight: 700; letter-spacing: 0.5px; }
+
+.arrow { text-align: center; color: #b8dac9; font-size: 20px; line-height: 1; margin: -4px 0; }
+
+.bottom-bar {
+  margin-top: 28px; background: #fff; border-radius: 16px; padding: 22px 30px;
+  display: flex; justify-content: space-between; align-items: center;
+  border: 1px solid rgba(46,125,91,0.15);
+}
+.bottom-bar .label { font-size: 18px; color: #999; }
+.bottom-bar .value { font-size: 20px; color: #333; font-weight: 600; }
+.bottom-bar .divider { width: 1px; height: 36px; background: #e8e8e8; }
+
+.badge-row { display: flex; gap: 10px; margin-top: 22px; justify-content: center; flex-wrap: wrap; }
+.badge { background: rgba(46,125,91,0.08); color: #2e7d5b; font-size: 18px; padding: 7px 18px; border-radius: 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+  <h1>QualiKit</h1>
+  <div class="sub">Qualitative Coding Pipeline &middot; 质性编码全流程</div>
+
+  <div class="pipeline">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Upload & Segment 上传与分段</h3>
+        <p>访谈 / 焦点小组 / 开放式问卷文本<br><span class="highlight">自动检测说话人，段落 / 轮次 / 上下文窗口</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>De-identification 脱敏处理</h3>
+        <p>自动检测人名 / 邮箱 / 电话 / 身份证号<br><span class="highlight">支持中文姓名识别 + 逐条审核接受/拒绝/编辑</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Research Framework 研究框架</h3>
+        <p>交互表格定义 RQ 和子主题，动态增删<br><span class="highlight">LLM 自动分析文本，建议相关子主题</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>LLM Coding LLM 编码<span class="badge-new">证据溯源</span></h3>
+        <p>LLM 逐段阅读，分配 RQ + 子主题 + 置信度<br><span class="highlight">强制输出 evidence_span — 原文关键句溯源</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Human Review 人工审核<span class="badge-new">高亮+仪表盘</span></h3>
+        <p>原文中<mark style="background:#D4EDDA;padding:0 3px;">绿色高亮</mark>显示 LLM 判断依据<br><span class="highlight">审查进度圆环 + 置信度直方图 + 主题分布</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Export 导出<span class="badge-new">存档</span></h3>
+        <p>Excel 结构化摘录表 + JSON pipeline log<br><span class="highlight">一键保存项目，包含审核状态 + 证据文本</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div><div class="label">输入</div><div class="value">访谈 / 焦点小组 .txt</div></div>
+    <div class="divider"></div>
+    <div><div class="label">编码方式</div><div class="value">LLM + 证据 + 人工</div></div>
+    <div class="divider"></div>
+    <div><div class="label">输出</div><div class="value">Excel + 仪表盘 + 项目</div></div>
+  </div>
+
+  <div class="badge-row">
+    <span class="badge">IRB 友好</span>
+    <span class="badge">证据可追溯</span>
+    <span class="badge">可视化分析</span>
+    <span class="badge">人机协作</span>
+    <span class="badge">进度持久化</span>
+  </div>
+</body>
+</html>

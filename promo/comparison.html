@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1440px;
+  background: linear-gradient(160deg, #f8faff 0%, #eef3fb 100%);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  padding: 70px;
+}
+h1 { font-size: 64px; font-weight: 800; color: #1a1a2e; text-align: center; margin-bottom: 14px; }
+.sub { text-align: center; font-size: 26px; color: #888; margin-bottom: 60px; }
+
+.cols { display: flex; gap: 34px; }
+.col {
+  flex: 1;
+  background: #fff;
+  border-radius: 22px;
+  padding: 46px 36px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.col.old { background: #f7f7f8; }
+.col.new { border: 2px solid #4A90D9; background: #fff; }
+
+.col h2 { font-size: 38px; font-weight: 700; text-align: center; margin-bottom: 34px; letter-spacing: 1px; }
+.col.old h2 { color: #888; }
+.col.new h2 { color: #4A90D9; }
+
+.item { display: flex; align-items: flex-start; gap: 14px; font-size: 22px; line-height: 1.5; margin-bottom: 18px; }
+.item .icon { flex-shrink: 0; font-size: 22px; }
+.item .text { color: #333; }
+.col.old .item .text { color: #888; }
+.col.new .item .text { color: #222; font-weight: 500; }
+
+.highlight { background: #fffbeb; padding: 2px 6px; border-radius: 4px; color: #b8820c; font-weight: 600; font-size: 20px; }
+</style>
+</head>
+<body>
+  <h1>传统方式 vs SocialSciKit</h1>
+  <div class="sub">Social science 文本分析的痛点，一次解决</div>
+
+  <div class="cols">
+    <div class="col old">
+      <h2>传统方式</h2>
+      <div class="item"><span class="icon">😓</span><span class="text">装 Python 环境 + 各种依赖</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">写代码读数据、清洗格式</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">查文献选分类方法</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">Excel 手动标注数据</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">手写 Prompt 和 API 调用</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">跑 fine-tuning 脚本</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">手写 F1 / Kappa 指标代码</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">手动脱敏访谈记录</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">逐段手工编码 + Excel 整理</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">SPSS 算编码者间信度</span></div>
+      <div class="item"><span class="icon">😓</span><span class="text">手写论文方法学段落</span></div>
+      <div class="item"><span class="icon">⏱️</span><span class="text">耗时数天 – 数周</span></div>
+    </div>
+
+    <div class="col new">
+      <h2>SocialSciKit</h2>
+      <div class="item"><span class="icon">✅</span><span class="text"><span class="highlight">pip install</span> 一行搞定</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">拖拽上传，自动验证修复</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">自动推荐方法 + 附文献</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">内置标注界面，点击即标</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">Prompt 自动生成 + 优化</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">一键 fine-tuning</span></div>
+      <div class="item"><span class="icon">📊</span><span class="text"><span class="highlight">可视化仪表盘</span> 混淆矩阵 + P/R/F1</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">自动脱敏 + 逐条审核</span></div>
+      <div class="item"><span class="icon">✅</span><span class="text">LLM 批量编码 + 证据高亮</span></div>
+      <div class="item"><span class="icon">🔬</span><span class="text"><span class="highlight">一键 ICR</span> Kappa + Alpha + Jaccard</span></div>
+      <div class="item"><span class="icon">📝</span><span class="text"><span class="highlight">Methods 段落</span> 中英双语自动生成</span></div>
+      <div class="item"><span class="icon">💾</span><span class="text"><span class="highlight">项目存档</span> 一键保存/恢复进度</span></div>
+    </div>
+  </div>
+</body>
+</html>
