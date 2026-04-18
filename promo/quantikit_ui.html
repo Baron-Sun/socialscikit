@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1440px;
+  background: linear-gradient(160deg, #f8faff 0%, #eef3fb 100%);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  padding: 60px 60px;
+  display: flex; flex-direction: column;
+}
+h1 { font-size: 52px; color: #4A90D9; text-align: center; margin-bottom: 6px; font-weight: 800; }
+.sub { font-size: 22px; color: #999; text-align: center; margin-bottom: 36px; }
+
+.pipeline { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+
+.step {
+  background: #fff; border-radius: 16px; padding: 22px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  border-left: 5px solid #4A90D9;
+  display: flex; align-items: flex-start; gap: 20px;
+}
+.step-num {
+  background: #4A90D9; color: #fff; width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+}
+.step-body { flex: 1; }
+.step-body h3 { font-size: 24px; color: #222; margin-bottom: 5px; font-weight: 700; }
+.step-body p { font-size: 18px; color: #777; line-height: 1.5; }
+.step-body .highlight { color: #4A90D9; font-weight: 600; }
+.step-body .badge-new { display: inline-block; background: #E8734A; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; font-weight: 700; letter-spacing: 0.5px; }
+
+.arrow { text-align: center; color: #c0d4f0; font-size: 20px; line-height: 1; margin: -4px 0; }
+
+.bottom-bar {
+  margin-top: 28px; background: #fff; border-radius: 16px; padding: 22px 30px;
+  display: flex; justify-content: space-between; align-items: center;
+  border: 1px solid rgba(74,144,217,0.15);
+}
+.bottom-bar .label { font-size: 18px; color: #999; }
+.bottom-bar .value { font-size: 20px; color: #333; font-weight: 600; }
+.bottom-bar .divider { width: 1px; height: 36px; background: #e8e8e8; }
+
+.badge-row { display: flex; gap: 10px; margin-top: 22px; justify-content: center; flex-wrap: wrap; }
+.badge { background: rgba(74,144,217,0.08); color: #4A90D9; font-size: 18px; padding: 7px 18px; border-radius: 16px; font-weight: 500; }
+</style>
+</head>
+<body>
+  <h1>QuantiKit</h1>
+  <div class="sub">Text Classification Pipeline &middot; 文本分类全流程</div>
+
+  <div class="pipeline">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Data Upload 数据上传</h3>
+        <p>CSV / Excel / JSON 拖拽上传<br><span class="highlight">自动验证 + 诊断报告 + 一键修复</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Recommendation 方法推荐</h3>
+        <p>自动推荐 zero-shot / few-shot / fine-tuning<br><span class="highlight">附文献依据 + 标注预算 + 边际收益曲线</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Annotation 数据标注<span class="badge-new">可视化</span></h3>
+        <p>内置标注界面，逐条标注<br><span class="highlight">实时进度圆环 + 跳过 / 撤销 / 标记待审</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Classification 文本分类</h3>
+        <p>Prompt 分类 &#183; 本地微调 &#183; API 微调<br><span class="highlight">Prompt 自动生成 + APE 优化 + 一键全量分类</span></p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>Evaluation 模型评估<span class="badge-new">仪表盘</span></h3>
+        <p><span class="highlight">指标卡片 + 混淆矩阵热图 + 各类别 P/R/F1 柱状图</span><br>Accuracy / Macro-F1 / Weighted-F1 / Cohen's κ</p>
+      </div>
+    </div>
+    <div class="arrow">&#9660;</div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h3>Export 导出<span class="badge-new">存档</span></h3>
+        <p>CSV 结果 + JSON pipeline log<br><span class="highlight">一键保存项目进度，下次继续</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div><div class="label">输入</div><div class="value">CSV / Excel / JSON</div></div>
+    <div class="divider"></div>
+    <div><div class="label">分类方式</div><div class="value">Prompt / 微调 / API</div></div>
+    <div class="divider"></div>
+    <div><div class="label">输出</div><div class="value">CSV + 仪表盘 + 项目</div></div>
+  </div>
+
+  <div class="badge-row">
+    <span class="badge">零代码</span>
+    <span class="badge">文献驱动</span>
+    <span class="badge">人机协作</span>
+    <span class="badge">可视化分析</span>
+    <span class="badge">进度持久化</span>
+  </div>
+</body>
+</html>
