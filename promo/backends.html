@@ -8,56 +8,43 @@ body {
   width: 1080px; height: 1440px;
   background: linear-gradient(160deg, #f8faff 0%, #eef3fb 100%);
   font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-  padding: 70px 60px;
-  display: flex; flex-direction: column; align-items: center;
+  padding: 80px 60px 80px;
+  display: flex; flex-direction: column;
 }
-h1 { font-size: 56px; color: #1a1a2e; text-align: center; margin-bottom: 16px; font-weight: 800; }
-.sub { font-size: 26px; color: #888; text-align: center; margin-bottom: 54px; }
+h1 { font-size: 58px; color: #1a1a2e; text-align: center; margin-bottom: 12px; font-weight: 800; }
+.sub { font-size: 24px; color: #888; text-align: center; margin-bottom: 54px; }
 
-.cards { display: flex; flex-direction: column; gap: 26px; width: 100%; }
+.cards { display: flex; flex-direction: column; gap: 24px; }
 
 .card {
-  background: #fff; border-radius: 22px; padding: 38px 44px;
+  background: #fff; border-radius: 20px; padding: 32px 44px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.04);
   border: 1px solid rgba(0,0,0,0.06);
   display: flex; align-items: center; gap: 36px;
 }
 .card-icon {
-  width: 100px; height: 100px; border-radius: 22px;
+  width: 96px; height: 96px; border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; font-weight: 800; color: #fff; flex-shrink: 0;
+  font-size: 40px; font-weight: 800; color: #fff; flex-shrink: 0;
 }
 .card-icon.openai { background: linear-gradient(135deg, #10a37f, #0d8c6d); }
 .card-icon.anthropic { background: linear-gradient(135deg, #d4a574, #c4956a); }
 .card-icon.ollama { background: linear-gradient(135deg, #333, #555); }
 
 .card-body { flex: 1; }
-.card-body h3 { font-size: 32px; color: #222; margin-bottom: 8px; font-weight: 700; }
-.card-body .models { font-size: 21px; color: #4A90D9; margin-bottom: 8px; font-weight: 500; font-family: "JetBrains Mono", monospace; }
+.card-body h3 { font-size: 30px; color: #222; margin-bottom: 8px; font-weight: 700; }
+.card-body .models { font-size: 20px; color: #4A90D9; margin-bottom: 8px; font-weight: 500; font-family: "JetBrains Mono", monospace; }
 .card-body .desc { font-size: 20px; color: #888; line-height: 1.5; }
 
 .highlight-box {
-  margin-top: 44px; background: #fff; border: 2px dashed #4A90D9; border-radius: 20px;
-  padding: 34px 48px; text-align: center; width: 100%;
+  margin-top: 34px; background: #fff; border: 2px dashed #4A90D9; border-radius: 18px;
+  padding: 28px 40px; text-align: center;
 }
-.highlight-box p { font-size: 26px; color: #333; line-height: 1.8; }
+.highlight-box p { font-size: 24px; color: #333; line-height: 1.8; }
 .highlight-box strong { color: #4A90D9; font-family: "JetBrains Mono", monospace; }
 
-.section-div { font-size: 28px; color: #222; font-weight: 700; margin: 40px 0 20px; letter-spacing: 1px; }
-
-.modules { display: flex; gap: 18px; width: 100%; }
-.module {
-  flex: 1; background: #fff; border-radius: 16px; padding: 22px 20px;
-  border-left: 4px solid #4A90D9;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-}
-.module.green { border-left-color: #5BA88D; }
-.module.orange { border-left-color: #E8734A; }
-.module h4 { font-size: 22px; color: #222; margin-bottom: 8px; font-weight: 700; }
-.module p { font-size: 17px; color: #666; line-height: 1.5; }
-
-.bottom-tags { display: flex; gap: 14px; margin-top: 36px; justify-content: center; flex-wrap: wrap; }
-.btag { background: rgba(74,144,217,0.08); color: #4A90D9; font-size: 20px; padding: 10px 22px; border-radius: 22px; font-weight: 500; }
+.bottom-tags { display: flex; gap: 12px; margin-top: auto; padding-top: 28px; justify-content: center; flex-wrap: wrap; }
+.btag { background: rgba(74,144,217,0.08); color: #4A90D9; font-size: 20px; padding: 8px 20px; border-radius: 20px; font-weight: 500; }
 </style>
 </head>
 <body>

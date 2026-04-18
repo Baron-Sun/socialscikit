@@ -8,8 +8,8 @@ body {
   width: 1080px; height: 1440px;
   background: linear-gradient(160deg, #f8faff 0%, #eef3fb 40%, #e8eef8 100%);
   font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 70px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 110px 70px 90px;
   position: relative;
   overflow: hidden;
 }
@@ -18,30 +18,33 @@ body {
 .circle2 { position: absolute; bottom: -100px; left: -60px; width: 350px; height: 350px; border-radius: 50%; background: rgba(91,168,141,0.05); }
 .circle3 { position: absolute; top: 50%; left: -150px; width: 300px; height: 300px; border-radius: 50%; background: rgba(232,115,74,0.04); }
 
-.badge { display: inline-block; background: #4A90D9; color: #fff; font-size: 24px; font-weight: 600; padding: 10px 30px; border-radius: 30px; letter-spacing: 2px; margin-bottom: 44px; }
-.title { font-size: 104px; font-weight: 800; color: #1a1a2e; letter-spacing: 4px; margin-bottom: 24px; text-align: center; }
-.subtitle { font-size: 40px; color: #555; font-weight: 400; text-align: center; margin-bottom: 24px; line-height: 1.5; }
-.tagline { font-size: 28px; color: #888; font-weight: 400; text-align: center; margin-bottom: 56px; letter-spacing: 1px; }
+.hero { display: flex; flex-direction: column; align-items: center; }
+.badge { display: inline-block; background: #4A90D9; color: #fff; font-size: 24px; font-weight: 600; padding: 10px 30px; border-radius: 30px; letter-spacing: 2px; margin-bottom: 48px; }
+.title { font-size: 108px; font-weight: 800; color: #1a1a2e; letter-spacing: 4px; margin-bottom: 28px; text-align: center; line-height: 1; }
+.subtitle { font-size: 40px; color: #555; font-weight: 400; text-align: center; margin-bottom: 20px; line-height: 1.5; }
+.tagline { font-size: 26px; color: #888; font-weight: 400; text-align: center; letter-spacing: 1px; }
 
-.features { display: flex; gap: 22px; margin-bottom: 50px; width: 100%; justify-content: center; }
+.features { display: flex; gap: 22px; width: 100%; justify-content: center; margin-top: 90px; }
 .feature-card {
-  background: #fff; border-radius: 20px; padding: 38px 32px; flex: 1; max-width: 320px;
+  background: #fff; border-radius: 20px; padding: 38px 28px; flex: 1;
   box-shadow: 0 4px 20px rgba(0,0,0,0.04);
   border-top: 5px solid #4A90D9;
+  min-height: 290px;
+  display: flex; flex-direction: column;
 }
 .feature-card.green { border-top-color: #5BA88D; }
 .feature-card.green h3 { color: #5BA88D; }
 .feature-card.orange { border-top-color: #E8734A; }
 .feature-card.orange h3 { color: #E8734A; }
-.feature-card h3 { font-size: 34px; color: #4A90D9; margin-bottom: 14px; font-weight: 700; }
-.feature-card .en { font-size: 19px; color: #aaa; margin-bottom: 14px; letter-spacing: 0.5px; }
-.feature-card p { font-size: 22px; color: #555; line-height: 1.7; }
+.feature-card h3 { font-size: 34px; color: #4A90D9; margin-bottom: 10px; font-weight: 700; }
+.feature-card .en { font-size: 18px; color: #aaa; margin-bottom: 16px; letter-spacing: 0.5px; }
+.feature-card p { font-size: 21px; color: #555; line-height: 1.7; }
 
-.tags { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px; }
+.bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.tags { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .tag { background: rgba(74,144,217,0.08); color: #4A90D9; font-size: 22px; padding: 10px 22px; border-radius: 22px; font-weight: 500; }
 
-.bottom { text-align: center; }
-.bottom .url { font-size: 28px; color: #4A90D9; font-weight: 600; font-family: "JetBrains Mono", "Menlo", monospace; }
+.url { font-size: 30px; color: #4A90D9; font-weight: 600; font-family: "JetBrains Mono", "Menlo", monospace; }
 </style>
 </head>
 <body>
@@ -49,10 +52,12 @@ body {
   <div class="circle2"></div>
   <div class="circle3"></div>
 
-  <div class="badge">OPEN SOURCE</div>
-  <div class="title">SocialSciKit</div>
-  <div class="subtitle">零代码文本分析与研究方法工具包</div>
-  <div class="tagline">Text Classification · Qualitative Coding · Research Methods</div>
+  <div class="hero">
+    <div class="badge">OPEN SOURCE</div>
+    <div class="title">SocialSciKit</div>
+    <div class="subtitle">零代码文本分析与研究方法工具包</div>
+    <div class="tagline">Text Classification · Qualitative Coding · Research Methods</div>
+  </div>
 
   <div class="features">
     <div class="feature-card">
@@ -68,18 +73,17 @@ body {
     <div class="feature-card orange">
       <h3>Toolbox</h3>
       <div class="en">研究方法</div>
-      <p>编码者间信度 · 共识编码<br>方法学段落自动生成</p>
+      <p>信度 · 共识编码<br>方法学段落生成</p>
     </div>
   </div>
 
-  <div class="tags">
-    <span class="tag">GPT · Claude · Ollama</span>
-    <span class="tag">可视化仪表盘</span>
-    <span class="tag">中英双语</span>
-    <span class="tag">项目存档</span>
-  </div>
-
   <div class="bottom">
+    <div class="tags">
+      <span class="tag">GPT · Claude · Ollama</span>
+      <span class="tag">可视化仪表盘</span>
+      <span class="tag">中英双语</span>
+      <span class="tag">项目存档</span>
+    </div>
     <div class="url">pip install socialscikit</div>
   </div>
 </body>
