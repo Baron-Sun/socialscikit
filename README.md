@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-562%20passing-brightgreen.svg" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-676%20passing-brightgreen.svg" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="#"><img src="https://img.shields.io/badge/UI-Gradio-orange.svg" alt="Gradio UI"></a>
   <a href="#"><img src="https://img.shields.io/badge/i18n-EN%20%7C%20%E4%B8%AD%E6%96%87-blueviolet.svg" alt="i18n"></a>
@@ -26,8 +26,15 @@ SocialSciKit is an open-source Python toolkit that enables social science resear
 Three core modules:
 
 - **QuantiKit** — End-to-end text classification pipeline (method recommendation &rarr; annotation &rarr; prompt/fine-tuning classification &rarr; evaluation &rarr; export)
-- **QualiKit** — End-to-end qualitative coding pipeline (upload &rarr; de-identification &rarr; research framework &rarr; LLM coding &rarr; human review &rarr; export)
+- **QualiKit** — End-to-end qualitative coding pipeline (upload &rarr; de-identification &rarr; research framework &rarr; LLM coding with evidence grounding &rarr; human review &rarr; export)
 - **Toolbox** — Standalone research methods tools: Inter-Coder Reliability (ICR) calculator, Multi-LLM Consensus Coding, and Methods Section Generator
+
+### Highlights
+
+- **Visualization Dashboard** — academic-style matplotlib charts (confusion matrix heatmaps, per-class P/R/F1 bars, confidence histograms, progress donuts, theme distribution) embedded throughout both pipelines
+- **Evidence Highlighting** — LLM codings include a verbatim `evidence_span` from the source text; the review UI highlights the supporting quote inline in the original document
+- **Project Save & Restore** — serialize the entire research project state (data, annotations, sessions, coding results) to a single JSON file; resume work later from the Home tab
+- **Zero-code web UI** — Gradio 4.44+ with full EN/ZH language switching at runtime
 
 ---
 
@@ -38,6 +45,7 @@ Three core modules:
 - [QuantiKit: Text Classification](#quantikit-text-classification)
 - [QualiKit: Qualitative Coding](#qualikit-qualitative-coding)
 - [Toolbox: Research Methods Tools](#toolbox-research-methods-tools)
+- [Project Save & Restore](#project-save--restore)
 - [Supported LLM Backends](#supported-llm-backends)
 - [Example Datasets](#example-datasets)
 - [Project Structure](#project-structure)
@@ -163,8 +171,8 @@ QuantiKit guides you through the full text classification workflow in 6 steps.
 
 - Built-in annotation UI — no need for external tools
 - Label each text sample, with **skip**, **undo**, **flag for review** support
+- **Real-time progress donut chart** — visual progress tracker updates after every action
 - Export annotated data as CSV, merge with original dataset
-- Progress tracker shows completion percentage
 
 ### Step 4 &middot; Classification
 
@@ -183,13 +191,18 @@ Three sub-approaches available in parallel tabs:
 
 ### Step 5 &middot; Evaluation
 
-- Metrics: Accuracy, Macro-F1, Cohen's Kappa, per-class Precision / Recall / F1
-- Confusion matrix visualization
-- Detailed classification report
+Full visualization dashboard:
+
+- **Metric summary cards** (HTML) — Accuracy, Macro-F1, Weighted-F1, Cohen's Kappa, total/correct counts
+- **Confusion matrix heatmap** — row-normalized, annotated with counts + percentages
+- **Per-class metrics bar chart** — Precision / Recall / F1 grouped bars per class
+- Collapsible full text report below charts
 
 ### Step 6 &middot; Export
 
 - Download classification results as CSV (original text + predicted labels + confidence)
+- **Pipeline log export** — JSON metadata usable by the Toolbox Methods Generator
+- **Save project** — persist all research state (data, predictions, annotation session) to a single JSON file
 
 ---
 
@@ -223,12 +236,18 @@ QualiKit supports the full qualitative coding workflow for interview transcripts
 ### Step 4 &middot; LLM Coding
 
 - Batch coding: LLM reads each segment and assigns RQ + sub-theme labels with confidence scores
+- **Evidence grounding**: the LLM prompt requires a verbatim `evidence_span` — the exact phrase or sentence from the source text that supports the coding decision
 - Supports OpenAI, Anthropic, and Ollama backends
-- Results displayed with segment text, assigned codes, and confidence levels
+- Results displayed with segment text, assigned codes, confidence levels, and evidence spans
 
 ### Step 5 &middot; Review
 
 - Review coding results in a table sorted by confidence
+- **Evidence highlighting**: when you select an item, the original text is shown with the LLM's `evidence_span` highlighted in green, so you can verify the coding decision at a glance; if the exact quote isn't found, a fallback "Evidence" block displays the cited text
+- Visualization dashboard (collapsible accordion):
+  - **Review progress donut** — accepted / edited / rejected / pending counts
+  - **Confidence histogram** — low/medium/high tier shading + median marker
+  - **Theme distribution** — horizontal bar chart of RQ frequencies
 - Per-item actions: accept, reject, or edit (reassign RQ/sub-theme)
 - Bulk accept by confidence threshold
 - **Manual coding**: select a segment, preview its content, and manually assign RQ + sub-theme labels
@@ -237,6 +256,8 @@ QualiKit supports the full qualitative coding workflow for interview transcripts
 ### Step 6 &middot; Export
 
 - Export reviewed coding results as structured Excel file
+- **Pipeline log export** — JSON metadata usable by the Toolbox Methods Generator
+- **Save project** — persist the entire coding session (segments, RQs, review state, evidence spans) to a single JSON file
 
 ---
 
@@ -272,6 +293,17 @@ Auto-generate a methods section paragraph (English + Chinese) for your paper:
 
 - **From pipeline log**: QuantiKit and QualiKit can export a pipeline log (JSON) capturing all metadata (sample size, model, metrics, themes, etc.). Import the log and generate a ready-to-use methods paragraph.
 - **Manual input**: Fill in metadata fields manually if you prefer not to use the pipeline log.
+
+---
+
+## Project Save & Restore
+
+Long research projects rarely finish in one session. SocialSciKit serialises the full state of your work — loaded DataFrames, annotation sessions (including cursor and history), extraction review sessions, research questions, de-identification results — into a single JSON file:
+
+- **Save**: at the end of any pipeline, click "Save Project" in Step 6 to download a `.json` archive
+- **Restore**: return to the **Home** tab, expand "Load Saved Project", upload the JSON file, and all state is restored across both pipelines
+- **Tagged-union serialisation**: complex types (`pd.DataFrame`, `AnnotationSession`, `ExtractionReviewSession`, `ResearchQuestion`, `ExtractionResult`, enums) round-trip losslessly; elapsed-time counters are preserved via monotonic time offsets
+- **Version-aware**: project files include a `__project_version__` field so future readers can migrate old archives
 
 ---
 
@@ -341,6 +373,8 @@ socialscikit/
 │   ├── llm_client.py             # Unified LLM client (OpenAI/Anthropic/Ollama)
 │   ├── icr.py                    # Inter-coder reliability (Kappa/Alpha/Jaccard)
 │   ├── methods_writer.py         # Methods section generator (EN/ZH templates)
+│   ├── charts.py                 # Academic-style matplotlib charts (viz dashboard)
+│   ├── project_io.py             # Project state serialization (save/restore)
 │   └── templates/                # Template files for download
 │
 ├── quantikit/                    # Text classification module
@@ -378,7 +412,8 @@ socialscikit/
 ├── cli.py                        # Command-line entry point
 │
 examples/                         # Sample datasets
-tests/                            # Test suite (562 tests)
+tests/                            # Test suite (676 tests)
+promo/                            # Promotional posters + HTML sources
 pyproject.toml                    # Package metadata & dependencies
 CITATION.cff                      # Citation metadata
 ```
