@@ -1396,43 +1396,8 @@ def create_app() -> gr.Blocks:
                 outputs=[coding_review_state, code_review_msg],
             )
 
-            # --- Consensus Coding (Multi-LLM) ---
-            with gr.Accordion("共识编码（多模型）", open=False):
-                gr.Markdown(
-                    "使用 2–3 个 LLM 分别独立编码，仅保留多数模型一致同意的主题。"
-                )
-                gr.Markdown("**LLM 1**")
-                with gr.Row():
-                    con_b1 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="openai", label="后端 1")
-                    con_m1 = gr.Textbox(label="模型 1", value="gpt-4o-mini")
-                    con_k1 = gr.Textbox(label="API Key 1", type="password")
-                gr.Markdown("**LLM 2**")
-                with gr.Row():
-                    con_b2 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="anthropic", label="后端 2")
-                    con_m2 = gr.Textbox(label="模型 2", value="claude-sonnet-4-20250514")
-                    con_k2 = gr.Textbox(label="API Key 2", type="password")
-                gr.Markdown("**LLM 3**（可选）")
-                with gr.Row():
-                    con_b3 = gr.Dropdown(choices=["openai", "anthropic", "ollama"], value="ollama", label="后端 3")
-                    con_m3 = gr.Textbox(label="模型 3", value="")
-                    con_k3 = gr.Textbox(label="API Key 3", type="password")
-
-                consensus_btn = gr.Button("运行共识编码", variant="primary")
-                consensus_summary = gr.Textbox(label="共识摘要", lines=10, interactive=False)
-                consensus_results_df = gr.Dataframe(label="共识结果", interactive=False)
-                consensus_agreement = gr.Textbox(label="一致性报告", lines=4, interactive=False)
-
-                consensus_btn.click(
-                    fn=_run_consensus_coding,
-                    inputs=[df_state, code_text_col, theme_session_state,
-                            con_b1, con_m1, con_k1,
-                            con_b2, con_m2, con_k2,
-                            con_b3, con_m3, con_k3],
-                    outputs=[coding_results_state, coding_review_state,
-                             consensus_report_state,
-                             consensus_summary, consensus_results_df,
-                             consensus_agreement],
-                )
+            # Consensus Coding has moved to the unified Toolbox tab
+            # in main_app.py — see `socialscikit.ui.toolbox_app`.
 
         # =============================================================
         # Tab 5: Export
@@ -1455,31 +1420,8 @@ def create_app() -> gr.Blocks:
                 outputs=[export_excel, export_memo, export_msg],
             )
 
-            # --- Inter-Coder Reliability ---
-            with gr.Accordion("编码者间信度 (ICR)", open=False):
-                gr.Markdown("对比人工审核结果与原始 LLM 编码，计算编码者间一致性。")
-                icr_ql_btn = gr.Button("计算 Human vs LLM 信度", variant="secondary")
-                icr_ql_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
-
-                icr_ql_btn.click(
-                    fn=_compute_qualikit_icr,
-                    inputs=[coding_results_state, coding_review_state],
-                    outputs=[icr_ql_output],
-                )
-
-            # --- Methods Section Generator ---
-            with gr.Accordion("方法论段落生成", open=False):
-                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
-                methods_ql_btn = gr.Button("生成方法论段落", variant="secondary")
-                methods_ql_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
-                methods_ql_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
-
-                methods_ql_btn.click(
-                    fn=_generate_ql_methods,
-                    inputs=[coding_results_state, theme_session_state,
-                            coding_review_state, consensus_report_state],
-                    outputs=[methods_ql_en, methods_ql_zh],
-                )
+            # ICR and Methods Generator have moved to the unified Toolbox tab
+            # in main_app.py — see `socialscikit.ui.toolbox_app`.
 
     return app
 

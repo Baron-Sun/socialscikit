@@ -2121,20 +2121,8 @@ def create_app() -> gr.Blocks:
                 outputs=[eval_output, eval_report_state],
             )
 
-            # --- Inter-Coder Reliability ---
-            with gr.Accordion("编码者间信度 (ICR)", open=False):
-                gr.Markdown("上传第二编码者（或人工标注）的标签 CSV，计算编码者间一致性。")
-                with gr.Row():
-                    icr_file = gr.File(label="第二编码者标签（CSV）", file_types=[".csv"])
-                    icr_second_col = gr.Textbox(label="标签列名", value="label")
-                icr_btn = gr.Button("计算编码者间信度", variant="secondary")
-                icr_output = gr.Textbox(label="信度报告", lines=14, interactive=False)
-
-                icr_btn.click(
-                    fn=_compute_icr,
-                    inputs=[result_df_state, icr_file, icr_second_col],
-                    outputs=[icr_output],
-                )
+            # ICR and Methods Generator have moved to the unified Toolbox tab
+            # in main_app.py — see `socialscikit.ui.toolbox_app`.
 
         # =============================================================
         # Tab 6: Export
@@ -2149,19 +2137,6 @@ def create_app() -> gr.Blocks:
                 inputs=[result_df_state],
                 outputs=[export_file],
             )
-
-            # --- Methods Section Generator ---
-            with gr.Accordion("方法论段落生成", open=False):
-                gr.Markdown("根据分析流程自动生成论文方法论段落草稿。复制后按需编辑。")
-                methods_btn = gr.Button("生成方法论段落", variant="secondary")
-                methods_en = gr.Textbox(label="Methods (English)", lines=8, interactive=True)
-                methods_zh = gr.Textbox(label="方法论（中文）", lines=8, interactive=True)
-
-                methods_btn.click(
-                    fn=_generate_qt_methods,
-                    inputs=[result_df_state, df_state, eval_report_state],
-                    outputs=[methods_en, methods_zh],
-                )
 
     return app
 

@@ -118,11 +118,15 @@ _FORCE_LIGHT_JS = """
 
     /* Initial fix for file-drop text (browser locale → Chinese) */
     fixDropText();
-    new MutationObserver(fixDropText).observe(document.body, {
-        childList: true, subtree: true
-    });
+    /* Body-wide observer: re-apply drop-text AND tab labels on any DOM change.
+       Needed because Gradio re-renders tabs individually when selected, which
+       reverts our translations.  Cheap text-only updates — no layout work. */
+    new MutationObserver(() => {
+        fixDropText();
+        switchTabs();
+    }).observe(document.body, { childList: true, subtree: true });
     /* Fallback for stubborn Gradio re-renders */
-    setInterval(fixDropText, 3000);
+    setInterval(() => { fixDropText(); switchTabs(); }, 2000);
 }
 """
 
@@ -961,7 +965,8 @@ def create_app() -> gr.Blocks:
                 with gr.Row():
                     qt_cm_plot = gr.Plot(label=t("qt.s5.confusion_matrix", "en"))
                     qt_pc_plot = gr.Plot(label=t("qt.s5.per_class", "en"))
-                with gr.Accordion(t("qt.s5.text_report", "en"), open=False):
+                qt_s5_text_acc = gr.Accordion(t("qt.s5.text_report", "en"), open=False)
+                with qt_s5_text_acc:
                     qt_eout = gr.Textbox(label=t("qt.s5.report", "en"), lines=18, interactive=False)
                 qt_ebtn.click(fn=qn._evaluate_results, inputs=[qt_result_df, qt_df, qt_lcol],
                               outputs=[qt_eout, qt_metrics_html, qt_cm_plot, qt_pc_plot])
@@ -1898,6 +1903,7 @@ def create_app() -> gr.Blocks:
                 gr.update(value=t("qt.s5.run_btn", lang)),               # qt_ebtn
                 gr.update(label=t("qt.s5.confusion_matrix", lang)),      # qt_cm_plot
                 gr.update(label=t("qt.s5.per_class", lang)),             # qt_pc_plot
+                gr.update(label=t("qt.s5.text_report", lang)),           # qt_s5_text_acc
                 gr.update(label=t("qt.s5.report", lang)),                # qt_eout
                 # -- QuantiKit Step 6 --
                 t("qt.s6.title", lang),                                  # qt_s6_md
@@ -1996,7 +2002,7 @@ def create_app() -> gr.Blocks:
             qt_s4_aft_md, qt_aft_key, qt_aft_mod, qt_aft_ep, qt_aft_sfx,
             qt_aft_btn, qt_aft_stat, qt_aft_chk, qt_aft_cnl, qt_aft_res,
             # ---- QuantiKit Step 5 ----
-            qt_s5_md, qt_ebtn, qt_cm_plot, qt_pc_plot, qt_eout,
+            qt_s5_md, qt_ebtn, qt_cm_plot, qt_pc_plot, qt_s5_text_acc, qt_eout,
             # ---- QuantiKit Step 6 ----
             qt_s6_md, qt_xbtn, qt_xfile,
             # ---- Toolbox ----
