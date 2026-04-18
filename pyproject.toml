@@ -7,23 +7,48 @@ name = "socialscikit"
 version = "0.1.0"
 description = "Zero-code toolkit for social science text analysis — classification (QuantiKit), qualitative coding (QualiKit), and research methods tools (Toolbox)"
 readme = "README.md"
-license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "SocialSciKit Contributors" },
+    { name = "Bolun Sun", email = "bolun.sun@kellogg.northwestern.edu" },
 ]
-keywords = ["social-science", "text-classification", "qualitative-coding", "inter-coder-reliability", "consensus-coding", "NLP", "LLM"]
+maintainers = [
+    { name = "Bolun Sun", email = "bolun.sun@kellogg.northwestern.edu" },
+]
+keywords = [
+    "social-science",
+    "computational-social-science",
+    "text-classification",
+    "qualitative-coding",
+    "qualitative-research",
+    "inter-coder-reliability",
+    "consensus-coding",
+    "llm",
+    "gradio",
+    "nlp",
+    "research-tools",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Sociology",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Environment :: Web Environment",
+    "Natural Language :: English",
+    "Natural Language :: Chinese (Simplified)",
 ]
 dependencies = [
     "pandas>=2.0",
+    "numpy>=1.24",
+    "matplotlib>=3.7",
     "openpyxl",
     "gradio>=4.0",
     "spacy>=3.7",
@@ -34,8 +59,6 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "bertopic",
-    "presidio-analyzer",
-    "presidio-anonymizer",
     "langdetect",
     "tiktoken",
     "httpx",
@@ -43,10 +66,33 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "ruff", "mypy"]
+# Local transformer fine-tuning needs torch (~2GB install).  Keep optional.
+finetune = ["torch>=2.0"]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy", "build", "twine"]
+
+[project.urls]
+Homepage = "https://github.com/Baron-Sun/socialscikit"
+Repository = "https://github.com/Baron-Sun/socialscikit"
+Documentation = "https://github.com/Baron-Sun/socialscikit#readme"
+Issues = "https://github.com/Baron-Sun/socialscikit/issues"
+Changelog = "https://github.com/Baron-Sun/socialscikit/releases"
 
 [project.scripts]
 socialscikit = "socialscikit.cli:main"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/socialscikit",
+    "/README.md",
+    "/README_zh.md",
+    "/LICENSE",
+    "/CITATION.cff",
+    "/examples",
+    "/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["socialscikit"]
 
 [tool.ruff]
 line-length = 100
